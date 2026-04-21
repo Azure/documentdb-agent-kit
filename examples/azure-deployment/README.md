@@ -41,26 +41,38 @@ The deploy scripts run these checks automatically before attempting deployment:
 **Bash / macOS / Linux / WSL:**
 
 ```bash
-# Production (defaults from main.bicep: M30 + ZoneRedundant HA + 128 GiB)
-cp main.parameters.sample.json main.parameters.json
-$EDITOR main.parameters.json              # set clusterName + Key Vault ID
 chmod +x ./deploy.sh
-./deploy.sh rg-docdb-prod eastus2 main.parameters.json
 
-# Dev / prototype (M10 + HA Disabled + 32 GiB)
-./deploy.sh rg-docdb-dev eastus2 main.parameters.dev.json
+# Fully interactive — the script lists your subscriptions, then your resource groups
+# (or lets you create a new one), then prompts for a region if needed.
+./deploy.sh
+
+# Or pre-fill RG + location; still picks the subscription interactively if you have several.
+./deploy.sh rg-docdb-prod eastus2 main.parameters.sample.json     # production
+./deploy.sh rg-docdb-dev  eastus2 main.parameters.dev.json        # dev / prototype
 ```
 
 **PowerShell (Windows):**
 
 ```powershell
-Copy-Item main.parameters.sample.json main.parameters.json
-code main.parameters.json
+# Fully interactive
+./deploy.ps1
 
-./deploy.ps1 -ResourceGroup rg-docdb-prod -Location eastus2 -ParametersFile main.parameters.json
+# Or pre-fill any subset
+./deploy.ps1 -ResourceGroup rg-docdb-prod -Location eastus2 -ParametersFile main.parameters.sample.json
 ```
 
-If you omit the parameters file, the Azure CLI interactively prompts for `adminUsername` and `adminPassword`; the scripts show the Bicep defaults and ask you to confirm before deploying. Pass `SKIP_CONFIRM=1 ./deploy.sh ...` (bash) or `-SkipConfirm` (PowerShell) to automate.
+The script will:
+
+1. Check `az` is installed and you are signed in (runs `az login` if not).
+2. **List your subscriptions** and ask you to pick one; single-subscription accounts are auto-selected.
+3. Register `Microsoft.DocumentDB` on the chosen subscription (one-time, ~1–2 min).
+4. **List resource groups** in that subscription and let you choose one or create a new one.
+5. If creating a new RG, list **DocumentDB-supported regions** and let you pick.
+6. Show the tier/HA/storage defaults that will apply and ask for `y/N` confirmation.
+7. Prompt for `adminUsername` and `adminPassword` (unless supplied via parameters file).
+
+To automate (no prompts), pre-fill everything and pass `SKIP_CONFIRM=1 ./deploy.sh ...` (bash) or `-SkipConfirm` (PowerShell).
 
 ## Production notes
 

@@ -10,7 +10,7 @@ Interactive skill for provisioning a managed **Azure DocumentDB** cluster (resou
 
 For running DocumentDB locally instead (Docker / Compose), use `documentdb-local-deployment`. For connection-string tuning after the cluster exists, use `documentdb-connection`.
 
-> **No-agent shortcut.** A ready-to-run Bicep + deploy script is checked in at [`examples/azure-deployment/`](../../examples/azure-deployment/) — customers who prefer to run the deploy themselves can clone the repo and `./deploy.sh <rg> <location>` without invoking any agent. Use it as a reference when generating project files too.
+> **No-agent shortcut.** A ready-to-run Bicep + deploy script is checked in at [`examples/azure-deployment/`](../../examples/azure-deployment/) — customers who prefer to run the deploy themselves can clone the repo and just run `./deploy.sh` (no arguments). The script interactively lists subscriptions → resource groups → regions (same flow as this skill). Use it as a reference when generating project files too.
 
 ## Step 0 — preflight checks (run before anything else)
 
@@ -74,15 +74,61 @@ Production is the safer default — the Bicep template and `main.parameters.samp
     --parameters computeTier=M10 storageSizeGb=32 haTargetMode=Disabled
   ```
 
-## Step 1 — gather inputs
+## Step 1 — pick the Azure subscription (always ask, never assume)
 
-Before generating any template or command, confirm with the user:
+The currently active subscription from `az account show` may not be the one the user wants. Always list and confirm.
+
+```bash
+# Show all subscriptions the signed-in user can access
+az account list --query "[].{Name:name, SubscriptionId:id, State:state, IsDefault:isDefault}" \
+  --output table
+```
+
+Present the numbered list to the user and ask them to pick one. Then set it active:
+
+```bash
+az account set --subscription "<subscription-id-or-name>"
+az account show --query "{name:name, id:id}" -o table   # confirm
+```
+
+If the user has only one subscription, still confirm out loud ("I'll deploy into `<name>` — OK?") rather than silently proceeding.
+
+## Step 2 — pick the resource group (existing) or create a new one
+
+List the resource groups **in the chosen subscription**:
+
+```bash
+az group list --query "[].{Name:name, Location:location}" --output table
+```
+
+Ask the user to either:
+
+**(a) Reuse an existing RG** — record its `location`; use it for the cluster's location too unless the user overrides. Skip Step 3.
+
+**(b) Create a new RG** — move to Step 3 to choose a location first.
+
+## Step 3 — pick the Azure region (only if creating a new RG)
+
+List regions that support `Microsoft.DocumentDB/mongoClusters`:
+
+```bash
+az provider show --namespace Microsoft.DocumentDB \
+  --query "resourceTypes[?resourceType=='mongoClusters'].locations[]" \
+  --output tsv
+```
+
+Present the list and ask the user to pick. Then create the RG:
+
+```bash
+az group create --name "<new-rg-name>" --location "<chosen-region>"
+```
+
+## Step 4 — gather the remaining cluster inputs
+
+Now that subscription, RG, and location are fixed, ask for cluster-specific values:
 
 | Input | Example | Notes |
 |---|---|---|
-| Subscription | `11111111-...` | Use `az account show` to verify the active one |
-| Resource group | `rg-documentdb-dev` | Create it (or reuse) |
-| Location | `eastus2`, `westeurope` | Must be a [supported region](https://learn.microsoft.com/azure/documentdb/) |
 | Cluster name | `docdb-prod-001` | 8–40 chars, lowercase letters/digits/hyphens; globally unique in Azure |
 | Admin username | `clusteradmin` | Avoid reserved names like `admin`, `root` |
 | Admin password | — | 8–128 chars; store in Key Vault — **never commit** |
@@ -95,18 +141,18 @@ Before generating any template or command, confirm with the user:
 
 If the user didn't answer Step 0.5, ask again — without that answer you can't pick the right tier/HA defaults.
 
-## Step 2 — choose a deployment path
+## Step 5 — choose a deployment path
 
 | Path | Use when | Section |
 |---|---|---|
-| **Bicep** (recommended) | Repeatable infra-as-code, PR-reviewed, committed to repo | [Step 3a](#step-3a--deploy-with-bicep) |
-| **Azure CLI one-shot** | Prototype, local dev, quick validation | [Step 3b](#step-3b--deploy-with-azure-cli-one-shot) |
-| **Terraform** | Existing Terraform estate | [Step 3c](#step-3c--deploy-with-terraform) |
+| **Bicep** (recommended) | Repeatable infra-as-code, PR-reviewed, committed to repo | [Step 6a](#step-6a--deploy-with-bicep) |
+| **Azure CLI one-shot** | Prototype, local dev, quick validation | [Step 6b](#step-6b--deploy-with-azure-cli-one-shot) |
+| **Terraform** | Existing Terraform estate | [Step 6c](#step-6c--deploy-with-terraform) |
 | **Portal** | First-time users who want to see the UI | [Azure portal quickstart](https://learn.microsoft.com/azure/documentdb/quickstart-portal) |
 
 For Bicep, load `references/bicep-cluster-template.md` — it contains the canonical parameterized template and an optional private-endpoint variant.
 
-## Step 3a — deploy with Bicep
+## Step 6a — deploy with Bicep
 
 Generate `main.bicep` using the template in `references/bicep-cluster-template.md`, then:
 
@@ -147,7 +193,7 @@ az deployment group create \
   ```
 - Or pass inline from the shell's own secret source: `--parameters adminPassword="$(az keyvault secret show ... --query value -o tsv)"`.
 
-## Step 3b — deploy with Azure CLI one-shot
+## Step 6b — deploy with Azure CLI one-shot
 
 For quick iteration without a Bicep file:
 
@@ -183,11 +229,11 @@ az resource create \
 
 Never paste a real password on the command line in shared terminals — read it from an env var or Key Vault.
 
-## Step 3c — deploy with Terraform
+## Step 6c — deploy with Terraform
 
 Prefer this when the user already uses Terraform. The `azurerm` provider supports `azurerm_cosmosdb_mongo_cluster` / equivalent `Microsoft.DocumentDB/mongoClusters` resource. Full quickstart: https://learn.microsoft.com/azure/documentdb/quickstart-terraform — the same parameters as Step 1 apply.
 
-## Step 4 — verify the deployment
+## Step 7 — verify the deployment
 
 ```bash
 az resource list \
@@ -200,7 +246,7 @@ az resource list \
 
 Expect one entry matching your cluster name.
 
-## Step 5 — retrieve the connection string
+## Step 8 — retrieve the connection string
 
 From the portal: **cluster → Connection strings**. The returned string has a `<password>` placeholder you must substitute.
 
@@ -212,7 +258,7 @@ mongodb+srv://<user>:<password>@<cluster>.global.mongocluster.cosmos.azure.com/?
 
 Note `retrywrites=false` — Azure DocumentDB does not support retryable writes; leaving it at the driver default will cause connection errors (see `documentdb-connection` for driver-specific tuning).
 
-## Step 6 — configure access
+## Step 9 — configure access
 
 Pick one posture and help the user apply it:
 
@@ -232,7 +278,7 @@ Pick one posture and help the user apply it:
 
 - **Entra RBAC / CMK / diagnostic settings**. See `documentdb-security` and `documentdb-monitoring`.
 
-## Step 7 — teardown
+## Step 10 — teardown
 
 ```bash
 az group delete --name "<resource-group-name>" --yes --no-wait
