@@ -10,6 +10,46 @@ Interactive skill for provisioning a managed **Azure DocumentDB** cluster (resou
 
 For running DocumentDB locally instead (Docker / Compose), use `documentdb-local-deployment`. For connection-string tuning after the cluster exists, use `documentdb-connection`.
 
+> **No-agent shortcut.** A ready-to-run Bicep + deploy script is checked in at [`examples/azure-deployment/`](../../examples/azure-deployment/) — customers who prefer to run the deploy themselves can clone the repo and `./deploy.sh <rg> <location>` without invoking any agent. Use it as a reference when generating project files too.
+
+## Step 0 — preflight checks (run before anything else)
+
+Run these checks at the start of every deployment session. If any fails, **fix it in place and re-run the loop** before continuing to Step 1 — don't skip ahead, and don't ask the user configuration questions you'll have to re-ask after they fix their environment.
+
+```bash
+# 1. Azure CLI installed?
+az version --query '"azure-cli"' -o tsv
+# → If 'az' is not found, stop and install: https://learn.microsoft.com/cli/azure/install-azure-cli
+
+# 2. Signed in?
+az account show --query '{name:name, id:id}' -o json
+# → On failure, run: az login
+
+# 3. Correct subscription active?
+az account show --query name -o tsv
+# → If wrong, run: az account set --subscription "<name-or-id>"
+
+# 4. Microsoft.DocumentDB provider registered on the subscription?
+az provider show --namespace Microsoft.DocumentDB --query registrationState -o tsv
+# → If 'NotRegistered' or 'Unregistered', run:
+#     az provider register --namespace Microsoft.DocumentDB
+#   Then poll until state is 'Registered' (~1–2 min).
+
+# 5. Caller has Contributor/Owner on the target scope?
+az role assignment list --assignee "$(az ad signed-in-user show --query id -o tsv)" \
+  --scope "/subscriptions/$(az account show --query id -o tsv)" \
+  --query "[].roleDefinitionName" -o tsv
+# → Expect Contributor, Owner, or a custom role with Microsoft.DocumentDB/mongoClusters/write.
+#   If empty or only a reader role, escalate before proceeding.
+
+# 6. Region supports mongoClusters?
+az provider show --namespace Microsoft.DocumentDB \
+  --query "resourceTypes[?resourceType=='mongoClusters'].locations[]" -o tsv
+# → Confirm the user's chosen location is in the list.
+```
+
+`examples/azure-deployment/deploy.sh` and `deploy.ps1` implement checks 1–4 automatically and will `az login` / register the provider / create the resource group as needed. If you're generating deployment files into a user's project, copy those scripts or use them as a template.
+
 ## Step 1 — gather inputs
 
 Before generating any template or command, confirm with the user:
@@ -182,6 +222,7 @@ Confirm with the user before running — this removes everything in the resource
 - [Quickstart: Create an Azure DocumentDB cluster by using the Azure portal](https://learn.microsoft.com/azure/documentdb/quickstart-portal)
 - [`Microsoft.DocumentDB/mongoClusters` resource reference](https://learn.microsoft.com/azure/templates/microsoft.documentdb/mongoclusters)
 - Loaded as needed: `references/bicep-cluster-template.md`
+- Ready-to-run copy (no agent required): [`examples/azure-deployment/`](../../examples/azure-deployment/)
 
 ## Related skills
 
