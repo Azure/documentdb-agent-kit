@@ -18,6 +18,7 @@ why it matters → incorrect example → correct example → references.
 | `skills/data-modeling/` | `model-` | Embed vs reference, 16 MB limit, denormalization, schema versioning |
 | `skills/cluster-sharding/` | `cluster-` | M-tier selection, vertical-first scaling, shard-key design |
 | `skills/query-optimization/` | `query-` | `explain("executionStats")`, avoiding `COLLSCAN` |
+| `skills/indexing/` | `index-` | Index-type selection (single / compound-ESR / multikey / wildcard / hashed / 2dsphere / TTL), query-pattern → index-shape cookbook, index budget, safe `hideIndex` → `dropIndex` lifecycle |
 | `skills/driver/` | `driver-` | MongoDB driver/SDK usage (singleton client, pooling) |
 | `skills/vector-search/` | `vector-` | `cosmosSearch` with DiskANN / HNSW / IVF, PQ, fp16 |
 | `skills/full-text-search/` | `fts-` | `textSearch` index, `$search` with `text`/`phrase`/`fuzzy`, hybrid (BM25 + vector) |

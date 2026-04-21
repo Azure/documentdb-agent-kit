@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-04-21 — Added `documentdb-indexing` rule-folder skill
+
+- New `skills/indexing/` skill (11 rules) dedicated to **index-type selection and shape** — answers "which index should I create?", complementing `documentdb-query-optimizer` (which answers "why is my query slow?").
+- Rules: `index-single-field`, `index-compound-esr` (with DocumentDB's 32-field compound limit and the prefix rule), `index-multikey-arrays` (parallel-array restriction, `$elemMatch`, no covered queries), `index-text-prefer-textsearch` (prefer DocumentDB `textSearch` over community `$text`), `index-wildcard-dynamic-schemas`, `index-hashed-shard-keys`, `index-2dsphere-geospatial` (`[lng, lat]` order), `index-ttl-expiry` (Date field, single-field only, ~60s sweeper lag), `index-count-budget` (5–15 per collection), `index-lifecycle-drop-hide` (`$indexStats` → `hideIndex` → `dropIndex`, redundancy detection, `_id` cannot be dropped), `index-pattern-cookbook` (16 query-pattern → index-shape recipes).
+- Registered skill in `AGENTS.md` (skills table + routing hint) and `README.md` (rule-folder skills table).
+
 ## 2026-04-21 — Cross-tool compatibility pass
 
 - Added a `SKILL.md` with `name` + `description` YAML front matter to every rule-folder skill (`data-modeling`, `cluster-sharding`, `query-optimization`, `driver`, `vector-search`, `full-text-search`, `high-availability`, `security`, `monitoring`, `local-deployment`). All 14 skills are now discoverable by Agent Skills–compatible tools.
