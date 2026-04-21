@@ -15,7 +15,7 @@ param adminUsername string
 @maxLength(128)
 param adminPassword string
 
-@description('Compute tier. HA requires M30 or higher.')
+@description('Compute tier. Defaults to M30 which is the minimum for HA. Use M10/M20 only for dev/test.')
 @allowed([
   'M10'
   'M20'
@@ -26,23 +26,23 @@ param adminPassword string
   'M80'
   'M200'
 ])
-param computeTier string = 'M10'
+param computeTier string = 'M30'
 
 @description('Storage per shard, in GiB.')
 @minValue(32)
-param storageSizeGb int = 32
+param storageSizeGb int = 128
 
 @description('Shard count. Start at 1; DocumentDB auto-shards until TB scale.')
 @minValue(1)
 param shardCount int = 1
 
-@description('High availability mode. Requires M30+ for non-Disabled values.')
+@description('High availability mode. ZoneRedundant is production-safe and requires M30+. Set to Disabled for dev/test to reduce cost.')
 @allowed([
   'Disabled'
   'SameZone'
   'ZoneRedundant'
 ])
-param haTargetMode string = 'Disabled'
+param haTargetMode string = 'ZoneRedundant'
 
 @description('MongoDB wire-protocol server version.')
 param serverVersion string = '8.0'

@@ -11,10 +11,10 @@
         "secretName": "docdb-admin-password"
       }
     },
-    "computeTier":      { "value": "M10" },
-    "storageSizeGb":    { "value": 32 },
+    "computeTier":      { "value": "M30" },
+    "storageSizeGb":    { "value": 128 },
     "shardCount":       { "value": 1 },
-    "haTargetMode":     { "value": "Disabled" },
+    "haTargetMode":     { "value": "ZoneRedundant" },
     "serverVersion":    { "value": "8.0" },
     "allowAzureServices": { "value": true }
   }

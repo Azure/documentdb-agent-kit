@@ -50,6 +50,30 @@ az provider show --namespace Microsoft.DocumentDB \
 
 `examples/azure-deployment/deploy.sh` and `deploy.ps1` implement checks 1–4 automatically and will `az login` / register the provider / create the resource group as needed. If you're generating deployment files into a user's project, copy those scripts or use them as a template.
 
+## Step 0.5 — is this production or dev/test?
+
+Ask the user **before** anything else in Step 1. The answer drives every default. Never assume.
+
+| If "production" (default) | If "dev / prototype / test" |
+|---|---|
+| Tier: **M30** (minimum that supports HA) | Tier: **M10** or M20 |
+| Storage: **128 GiB** per shard | Storage: **32 GiB** |
+| HA: **ZoneRedundant** | HA: **Disabled** |
+| Firewall: Private Endpoint; `allowAzureServices: false` | `allowAzureServices: true` + developer IP rule |
+| Password source: **Key Vault reference** | Key Vault preferred; literal OK for throwaway |
+| Parameters file: `main.parameters.sample.json` | `main.parameters.dev.json` |
+
+Production is the safer default — the Bicep template and `main.parameters.sample.json` in `examples/azure-deployment/` ship with M30 + ZoneRedundant + 128 GiB so that a customer who runs `./deploy.sh <rg> <location>` without overrides ends up with a cluster they can actually put workloads on. If the user answers "dev", either:
+
+- pass `--parameters @main.parameters.dev.json` to the deploy script, **or**
+- override on the command line:
+  ```bash
+  az deployment group create \
+    --resource-group "<rg>" \
+    --template-file main.bicep \
+    --parameters computeTier=M10 storageSizeGb=32 haTargetMode=Disabled
+  ```
+
 ## Step 1 — gather inputs
 
 Before generating any template or command, confirm with the user:
@@ -62,14 +86,14 @@ Before generating any template or command, confirm with the user:
 | Cluster name | `docdb-prod-001` | 8–40 chars, lowercase letters/digits/hyphens; globally unique in Azure |
 | Admin username | `clusteradmin` | Avoid reserved names like `admin`, `root` |
 | Admin password | — | 8–128 chars; store in Key Vault — **never commit** |
-| Compute tier | `M10` (dev) / `M30`+ (prod) | Full list: `M10`, `M20`, `M30`, `M40`, `M50`, `M60`, `M80`, `M200` |
-| Storage per shard (GiB) | `32` (dev) / `128`+ (prod) | |
+| Compute tier | **M30** (prod default) / `M10`–`M20` (dev) | Full list: `M10`, `M20`, `M30`, `M40`, `M50`, `M60`, `M80`, `M200` |
+| Storage per shard (GiB) | **128** (prod default) / `32` (dev) | |
 | Shard count | `1` (auto-shard up to TB scale — see `documentdb-cluster-sharding`) | |
-| High availability | `Disabled` (dev) / `SameZone` or `ZoneRedundant` (prod) | HA requires M30+ |
+| High availability | **ZoneRedundant** (prod default) / `SameZone` / `Disabled` (dev) | Non-Disabled values require M30+ |
 | MongoDB server version | `8.0` | |
 | Public network access | Default `Enabled` with firewall rules | Or disable and attach Private Endpoint (see `documentdb-security`) |
 
-If the user didn't specify production vs dev, ask — the tier, HA, and firewall posture differ sharply.
+If the user didn't answer Step 0.5, ask again — without that answer you can't pick the right tier/HA defaults.
 
 ## Step 2 — choose a deployment path
 

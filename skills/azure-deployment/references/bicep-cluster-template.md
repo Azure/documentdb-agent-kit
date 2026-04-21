@@ -33,11 +33,11 @@ param adminPassword string
   'M80'
   'M200'
 ])
-param computeTier string = 'M10'
+param computeTier string = 'M30'
 
 @description('Storage per shard, in GiB.')
 @minValue(32)
-param storageSizeGb int = 32
+param storageSizeGb int = 128
 
 @description('Shard count. Start at 1; DocumentDB auto-shards until TB scale.')
 @minValue(1)
@@ -49,7 +49,7 @@ param shardCount int = 1
   'SameZone'
   'ZoneRedundant'
 ])
-param haTargetMode string = 'Disabled'
+param haTargetMode string = 'ZoneRedundant'
 
 @description('MongoDB wire-protocol server version.')
 param serverVersion string = '8.0'

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "clusterName":        { "value": "docdb-dev-001" },
+    "adminUsername":      { "value": "clusteradmin" },
+    "__adminPassword_comment": "For throwaway dev only. For anything else, replace with the Key Vault reference shown in main.parameters.sample.json.",
+    "adminPassword":      { "value": "REPLACE-WITH-STRONG-PASSWORD-OR-USE-KEYVAULT" },
+    "computeTier":        { "value": "M10" },
+    "storageSizeGb":      { "value": 32 },
+    "shardCount":         { "value": 1 },
+    "haTargetMode":       { "value": "Disabled" },
+    "serverVersion":      { "value": "8.0" },
+    "allowAzureServices": { "value": true }
+  }
+}

@@ -58,15 +58,36 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# Step 1 — deploy
+# Step 1 — summarise intended deployment and confirm
+# ---------------------------------------------------------------------------
+if [[ -n "$PARAMS_FILE" ]]; then
+  [[ -f "$PARAMS_FILE" ]] || die "Parameters file not found: $PARAMS_FILE"
+  info "Parameters file: $PARAMS_FILE"
+else
+  warn "No parameters file provided — main.bicep defaults will apply:"
+  warn "    computeTier   = M30           (production-class; not free tier)"
+  warn "    storageSizeGb = 128 GiB"
+  warn "    haTargetMode  = ZoneRedundant (requires M30+)"
+  warn "    shardCount    = 1"
+  warn "For dev/test, re-run with: $0 $RG $LOCATION main.parameters.dev.json"
+fi
+
+if [[ -t 0 && "${SKIP_CONFIRM:-0}" != "1" ]]; then
+  read -r -p "Proceed with deployment to '$RG' in '$LOCATION'? [y/N] " REPLY
+  case "$REPLY" in
+    y|Y|yes|YES) ;;
+    *) die "Aborted by user." ;;
+  esac
+fi
+
+# ---------------------------------------------------------------------------
+# Step 2 — deploy
 # ---------------------------------------------------------------------------
 DEPLOY_ARGS=(--resource-group "$RG" --template-file "$(dirname "$0")/main.bicep")
 if [[ -n "$PARAMS_FILE" ]]; then
-  [[ -f "$PARAMS_FILE" ]] || die "Parameters file not found: $PARAMS_FILE"
   DEPLOY_ARGS+=(--parameters "@$PARAMS_FILE")
-  info "Deploying with parameters file: $PARAMS_FILE"
 else
-  info "No parameters file provided — you'll be prompted for adminUsername and adminPassword."
+  info "You'll be prompted for adminUsername and adminPassword."
 fi
 
 info "Deploying cluster (this typically takes 8–12 minutes)..."

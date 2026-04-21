@@ -9,7 +9,8 @@
 param(
     [Parameter(Mandatory = $true)] [string] $ResourceGroup,
     [Parameter(Mandatory = $true)] [string] $Location,
-    [string] $ParametersFile
+    [string] $ParametersFile,
+    [switch] $SkipConfirm
 )
 
 $ErrorActionPreference = 'Stop'
@@ -63,7 +64,27 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 # ---------------------------------------------------------------------------
-# Step 1 — deploy
+# Step 1 — summarise intended deployment and confirm
+# ---------------------------------------------------------------------------
+if ($ParametersFile) {
+    if (-not (Test-Path $ParametersFile)) { Die "Parameters file not found: $ParametersFile" }
+    Write-Info "Parameters file: $ParametersFile"
+} else {
+    Write-Warn2 "No parameters file provided — main.bicep defaults will apply:"
+    Write-Warn2 "    computeTier   = M30           (production-class; not free tier)"
+    Write-Warn2 "    storageSizeGb = 128 GiB"
+    Write-Warn2 "    haTargetMode  = ZoneRedundant (requires M30+)"
+    Write-Warn2 "    shardCount    = 1"
+    Write-Warn2 "For dev/test, re-run with: -ParametersFile main.parameters.dev.json"
+}
+
+if (-not $SkipConfirm) {
+    $reply = Read-Host "Proceed with deployment to '$ResourceGroup' in '$Location'? [y/N]"
+    if ($reply -notmatch '^(y|Y|yes|YES)$') { Die "Aborted by user." }
+}
+
+# ---------------------------------------------------------------------------
+# Step 2 — deploy
 # ---------------------------------------------------------------------------
 $bicepPath = Join-Path $PSScriptRoot 'main.bicep'
 $deployArgs = @('deployment', 'group', 'create',
@@ -71,11 +92,9 @@ $deployArgs = @('deployment', 'group', 'create',
                 '--template-file', $bicepPath)
 
 if ($ParametersFile) {
-    if (-not (Test-Path $ParametersFile)) { Die "Parameters file not found: $ParametersFile" }
     $deployArgs += @('--parameters', "@$ParametersFile")
-    Write-Info "Deploying with parameters file: $ParametersFile"
 } else {
-    Write-Info "No parameters file provided — you'll be prompted for adminUsername and adminPassword."
+    Write-Info "You'll be prompted for adminUsername and adminPassword."
 }
 
 Write-Info "Deploying cluster (this typically takes 8–12 minutes)..."

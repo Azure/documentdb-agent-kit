@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-04-21 — `azure-deployment`: production-safe defaults + dev parameters file
+
+- Changed `examples/azure-deployment/main.bicep` and `skills/azure-deployment/references/bicep-cluster-template.md` defaults from dev-sized (M10 / HA Disabled / 32 GiB) to **production-safe** (`computeTier = M30`, `haTargetMode = ZoneRedundant`, `storageSizeGb = 128`). Running `./deploy.sh <rg> <location>` with no overrides now produces a cluster fit for real workloads — not a free tier.
+- Added `examples/azure-deployment/main.parameters.dev.json` with the prior dev-sized defaults for prototyping. Agent docs and the example README now explicitly steer users to choose between the two files (or override on the CLI).
+- Added a **dev-vs-production branch** in `SKILL.md` (new Step 0.5) — the agent must ask the user before falling back to defaults. Step 1 input table updated accordingly.
+- `deploy.sh` / `deploy.ps1` now print a summary of the tier/HA/storage that will apply and prompt for `y/N` confirmation (bypass with `SKIP_CONFIRM=1` or `-SkipConfirm`) — avoids silent provisioning of a production-class cluster when the user expected a free tier.
+
 ## 2026-04-21 — Added `documentdb-azure-deployment` skill
 
 - New `skills/azure-deployment/` interactive workflow skill for provisioning an Azure DocumentDB cluster end-to-end. Grounded in Microsoft Learn docs for `Microsoft.DocumentDB/mongoClusters` (API `2025-09-01`).
