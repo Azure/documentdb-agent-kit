@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-04-21 — `azure-deployment`: interactive subscription / RG / region pickers
+
+- `SKILL.md` now requires the agent to **list subscriptions first, then resource groups, then regions** (only if creating a new RG). These are now Steps 1, 2, and 3; the remaining cluster inputs moved to Step 4 and deployment paths to Step 6. The previous single "gather inputs" table collapsed these into one prompt, which made agents silently assume the active subscription.
+- `examples/azure-deployment/deploy.sh` and `deploy.ps1` implement the same flow interactively:
+  1. Ensure `az` is installed and signed in
+  2. List enabled subscriptions; auto-pick when there's only one, otherwise prompt
+  3. Register the `Microsoft.DocumentDB` provider on the chosen subscription
+  4. List existing resource groups (+ an explicit "create new" menu entry); derive location from the chosen RG when reusing
+  5. Only prompt for a region if creating a new RG, using the `mongoClusters`-supported list
+  6. Summarise defaults, confirm, deploy
+- Both scripts now accept **zero positional arguments** (`./deploy.sh`) for fully interactive runs; passing `<rg> <location> [params-file]` still works and skips the relevant pickers.
+
+## 2026-04-21 — `azure-deployment`: production-safe defaults (M30 + ZoneRedundant HA + 128 GiB) with dev parameters file and confirmation prompt
+
+## 2026-04-21 — Added `documentdb-azure-deployment` skill
+
+- New `skills/azure-deployment/` interactive workflow skill for provisioning an Azure DocumentDB cluster end-to-end. Grounded in Microsoft Learn docs for `Microsoft.DocumentDB/mongoClusters` (API `2025-09-01`).
+- `SKILL.md` walks the agent through: a **Step 0 preflight loop** (CLI installed, signed in, correct subscription, `Microsoft.DocumentDB` registered, caller has Contributor/Owner, region supports `mongoClusters`), input gathering (tier, storage, HA, firewall posture), choosing a deployment path (Bicep / CLI one-shot / Terraform / portal), deployment, verification, connection-string retrieval, firewall / Private Endpoint posture, and teardown.
+- `references/bicep-cluster-template.md` contains the canonical parameterized `main.bicep` with `@allowed` tier list, Key Vault password reference example, and an optional Private Endpoint variant (`publicNetworkAccess: 'Disabled'` + `Microsoft.Network/privateEndpoints` with group `MongoCluster`).
+- New `examples/azure-deployment/` — a no-agent ready-to-run copy: `main.bicep`, `main.parameters.sample.json` (with Key Vault secret reference), `deploy.sh` (bash + preflight checks + auto-registers provider + creates RG), `deploy.ps1` (PowerShell equivalent), and `README.md`. Lets customers clone the repo and `./deploy.sh <rg> <location>` without involving any agent.
+- Registered in `AGENTS.md` (skills table + routing hint) and `README.md`. Validator passes: 16 skills, unique names.
+
 ## 2026-04-21 — Added `documentdb-indexing` rule-folder skill
 
 - New `skills/indexing/` skill (11 rules) dedicated to **index-type selection and shape** — answers "which index should I create?", complementing `documentdb-query-optimizer` (which answers "why is my query slow?").

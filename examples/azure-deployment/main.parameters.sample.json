@@ -1,0 +1,21 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "clusterName":    { "value": "docdb-dev-001" },
+    "adminUsername":  { "value": "clusteradmin" },
+    "__adminPassword_comment": "Prefer the Key Vault reference below. Fill in a literal only for local-only throwaway testing.",
+    "adminPassword": {
+      "reference": {
+        "keyVault": { "id": "/subscriptions/<subscription-id>/resourceGroups/<rg-name>/providers/Microsoft.KeyVault/vaults/<kv-name>" },
+        "secretName": "docdb-admin-password"
+      }
+    },
+    "computeTier":      { "value": "M30" },
+    "storageSizeGb":    { "value": 128 },
+    "shardCount":       { "value": 1 },
+    "haTargetMode":     { "value": "ZoneRedundant" },
+    "serverVersion":    { "value": "8.0" },
+    "allowAzureServices": { "value": true }
+  }
+}
