@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-04-21 — Added `documentdb-azure-deployment` skill
+
+- New `skills/azure-deployment/` interactive workflow skill for provisioning an Azure DocumentDB cluster end-to-end. Grounded in Microsoft Learn docs for `Microsoft.DocumentDB/mongoClusters` (API `2025-09-01`).
+- `SKILL.md` walks the agent through: input gathering (tier, storage, HA, firewall posture), choosing a deployment path (Bicep / CLI one-shot / Terraform / portal), deployment, verification, connection-string retrieval, firewall / Private Endpoint posture, and teardown.
+- `references/bicep-cluster-template.md` contains the canonical parameterized `main.bicep` with `@allowed` tier list, Key Vault password reference example, and an optional Private Endpoint variant (`publicNetworkAccess: 'Disabled'` + `Microsoft.Network/privateEndpoints` with group `MongoCluster`).
+- Registered in `AGENTS.md` (skills table + routing hint) and `README.md`. Validator passes: 16 skills, unique names.
+
 ## 2026-04-21 — Added `documentdb-indexing` rule-folder skill
 
 - New `skills/indexing/` skill (11 rules) dedicated to **index-type selection and shape** — answers "which index should I create?", complementing `documentdb-query-optimizer` (which answers "why is my query slow?").

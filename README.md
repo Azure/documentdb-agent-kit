@@ -34,6 +34,7 @@ Single-purpose skills the agent loads when its trigger description matches.
 | Skill | Triggers |
 |---|---|
 | `skills/mcp-setup/` | Configuring the DocumentDB MCP server (connection string, transport, shell profile) |
+| `skills/azure-deployment/` | Provisioning an Azure DocumentDB cluster (`Microsoft.DocumentDB/mongoClusters`) — Bicep (with Key Vault), Azure CLI one-shot, Terraform pointer, firewall, connection string, teardown |
 | `skills/natural-language-querying/` | "How do I query…", filter/aggregate/group requests, SQL → MQL translation |
 | `skills/query-optimizer/` | "Why is this query slow?", index review, `explain()`-driven tuning (indexing deep-dive lives in its `references/`) |
 | `skills/connection/` | Connection pool / timeout / retry tuning; serverless vs OLTP vs OLAP patterns |

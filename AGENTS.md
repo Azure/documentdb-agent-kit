@@ -37,6 +37,7 @@ These skills walk the user (or another agent) through a task end-to-end.
 | Skill | Folder | When to use |
 |---|---|---|
 | `documentdb-mcp-setup` | `skills/mcp-setup/` | User has the DocumentDB MCP server installed but hasn't configured `DOCUMENTDB_URI` / transport / shell profile |
+| `documentdb-azure-deployment` | `skills/azure-deployment/` | Provisioning an Azure DocumentDB cluster (`Microsoft.DocumentDB/mongoClusters`) via Bicep, Azure CLI, Terraform, or portal; firewall rules; connection string retrieval |
 | `documentdb-natural-language-querying` | `skills/natural-language-querying/` | "How do I query…", "filter / group / aggregate…", SQL → MQL translation (read-only queries only) |
 | `documentdb-query-optimizer` | `skills/query-optimizer/` | "Why is this slow?", index review, `explain()`-driven tuning; loads `references/core-indexing-principles.md` |
 | `documentdb-connection` | `skills/connection/` | Pool-size / timeout / retry tuning for serverless, OLTP, OLAP, or bursty workloads |
@@ -52,6 +53,7 @@ These skills walk the user (or another agent) through a task end-to-end.
 - **Adding keyword / BM25 search** → `documentdb-full-text-search`
 - **Configuring `MongoClient` / connection string** → `documentdb-connection` (pool tuning) or `documentdb-driver` (basic patterns)
 - **Setting up the DocumentDB MCP server** → `documentdb-mcp-setup`
+- **Provisioning / deploying an Azure DocumentDB cluster (Bicep / CLI / Terraform)** → `documentdb-azure-deployment`
 - **Running DocumentDB locally** → `documentdb-local-deployment`
 - **HA / DR / SLA questions** → `documentdb-high-availability`
 - **TLS / RBAC / encryption / networking** → `documentdb-security`
