@@ -1,0 +1,49 @@
+# Changelog
+
+## 2026-04-21 — Cross-tool compatibility pass
+
+- Added a `SKILL.md` with `name` + `description` YAML front matter to every rule-folder skill (`data-modeling`, `cluster-sharding`, `query-optimization`, `driver`, `vector-search`, `full-text-search`, `high-availability`, `security`, `monitoring`, `local-deployment`). All 14 skills are now discoverable by Agent Skills–compatible tools.
+- Rewrote `AGENTS.md` as a proper skills index with a "how agents should use this kit" section, a full skills table (rule collections + interactive skills), and routing hints mapping user intents to skills.
+- Added per-tool install instructions to `README.md` (Claude Code project + user scope, GitHub Copilot, Gemini CLI).
+- Added `scripts/validate-skills.ps1` — verifies every `skills/*/SKILL.md` has valid front matter with non-empty `name` and `description`, and that names are unique across the kit.
+
+## 2026-04-21 — Merged `indexing/` rules into `query-optimizer/references/`
+
+- Moved `skills/indexing/index-support-queries.md` into `skills/query-optimizer/references/`.
+- Removed the standalone `skills/indexing/` rule folder — compound-index guidance now lives with the query-optimizer skill that loads it.
+- Added `skills/query-optimizer/references/core-indexing-principles.md` — the deep-dive referenced from the skill's `SKILL.md` (supported index types, ESR rule, reading `explain("executionStats")`, covered queries, common diagnoses, anti-patterns, special index categories, verification workflow).
+- Updated `README.md` to reflect both rule-folder and standalone-SKILL.md skill types.
+
+## 2026-04-21 — Flattened skill layout
+
+- Removed the `skills/documentdb-best-practices/` wrapper and the intermediate `rules/` folder.
+- Every category folder (`data-modeling`, `cluster-sharding`, `indexing`, `query-optimization`, `driver`, `vector-search`, `full-text-search`, `high-availability`, `security`, `monitoring`, `local-deployment`) now lives directly under `skills/`.
+- Updated top-level `README.md` and `AGENTS.md` to reference the new paths.
+- No rule files were renamed or modified.
+
+## 2026-04-22 — Added Local Deployment category
+
+- New `rules/local-deployment/` folder with 7 best-practice rules for running DocumentDB locally: choosing the right image (Gateway vs psql vs source), `docker-compose.yml` patterns, TLS + SCRAM connection config, env-driven configuration (`DOCUMENTDB_URI`, `DOCUMENTDB_ALLOW_INVALID_CERTS`), sample-data management (`SKIP_INIT_DATA` / `INIT_DATA_PATH`), port bindings (`127.0.0.1` only), and local/production parity via versioned index & seed scripts.
+- Registered the new category in `SKILL.md`, `metadata.json`, and the skill README.
+
+## 2026-04-22 — Added Full-Text Search category
+
+- New `rules/full-text-search/` folder with 5 rules covering the `textSearch` index type and the `$search` aggregation stage: index creation, BM25 keyword search, fuzzy search (`maxEdits`), phrase search (`slop`), and hybrid (BM25 + vector) search via Reciprocal Rank Fusion.
+- Registered the new category in `SKILL.md`, `metadata.json`, and the skill README.
+
+## 2026-04-22 — Grouped rules into category subfolders
+
+- Rules are now organized one folder per category under `rules/` (e.g. `rules/vector-search/`, `rules/cluster-sharding/`, `rules/security/`).
+- Updated SKILL.md links accordingly. File names (and rule prefixes) are unchanged.
+
+## 2026-04-21 — Retargeted to Azure DocumentDB (v0.2.0)
+
+- Kit now targets **Azure DocumentDB (with MongoDB compatibility)** — the managed service built on the open-source DocumentDB project.
+- Rewrote Sharding rules around DocumentDB's auto-sharding model (shard key not required until terabytes).
+- Rewrote Vector rules to reflect DocumentDB's `cosmosSearch` with **DiskANN** (recommended), HNSW, and IVF; added Product Quantization and Half-Precision indexing rules.
+- Updated HA rules with the documented SLAs (99.99% HA, 99.995% HA + cross-region replica).
+- Removed Full-Text Search category (not a first-class DocumentDB feature).
+
+## 2026-04-21 — Initial scaffold (v0.1.0)
+
+- Created `documentdb-best-practices` skill targeting Cosmos DB for MongoDB vCore (later retargeted).
