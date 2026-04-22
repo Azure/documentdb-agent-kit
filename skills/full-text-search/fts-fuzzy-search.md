@@ -4,59 +4,67 @@
 
 ## Why it matters
 
-Users mistype. Fuzzy search lets `$search` match terms within a bounded **edit distance (Levenshtein)** of the query, so `"s0me"` can still find `"some"`. On Azure DocumentDB this is expressed by adding a `fuzzy` object to the `text` operator with `maxEdits`.
+Real users mistype. Fuzzy search lets `$search` match terms within a bounded **edit distance (Levenshtein)** of the query, so `"bracXet"` still finds `"bracket"`. On Azure DocumentDB, fuzziness is a sub-object of the `text` operator with a `maxEdits` parameter.
 
 Use fuzzy search for:
-- Search-as-you-type UIs and misspelling tolerance.
-- User-facing product/catalog search.
-- Log/entity search where noise is common.
 
-Do **not** default every search to fuzzy — higher `maxEdits` significantly broadens the candidate set, hurts precision, and costs latency. Keep `maxEdits` small.
+- Search-as-you-type UIs and misspelling tolerance.
+- User-facing product / catalog search.
+- Log or entity search where noise is common.
+
+Do **not** default every search to fuzzy — higher `maxEdits` significantly broadens the candidate set, hurts precision, and increases latency. Keep `maxEdits` small and let exact matches rank naturally.
 
 ## Incorrect
 
-Raising `maxEdits` too high to "just get more matches":
+Raising `maxEdits` beyond 2 — on short tokens this matches almost everything:
 
 ```javascript
-// Edit distance 3 on short tokens matches almost everything — noisy and slow
-db.mongo_bm25_collection.aggregate([
-  { $search: { text: { query: "s0me", path: "a", fuzzy: { maxEdits: 3 } }, count: 5 } }
+db.products_10M.aggregate([
+  { $search: {
+      index: "idx_title_standard",
+      text: { query: "bracXet", path: "title", fuzzy: { maxEdits: 3 } }
+  }},
+  { $limit: 20 }
 ]);
 ```
 
-Or using `$regex` with `.*` wildcards to simulate fuzziness:
+Or faking fuzziness with a wildcard `$regex` — `COLLSCAN`, no BM25 ranking, no real distance metric:
 
 ```javascript
-db.mongo_bm25_collection.find({ a: { $regex: ".*s.me.*" } }); // COLLSCAN, no BM25 ranking
+db.products_10M.find({ title: { $regex: ".*br.cket.*" } });
 ```
 
 ## Correct
 
 ```javascript
-db.mongo_bm25_collection.aggregate([
+db.products_10M.aggregate([
   {
     $search: {
+      index: "idx_title_standard",
       text: {
-        query: "s0me",
-        path: "a",
+        query: "bracXet",
+        path: "title",
         fuzzy: { maxEdits: 1 }
-      },
-      count: 5
+      }
     }
   },
+  { $limit: 20 },
   {
     $project: {
-      a: 1,
-      rank: { $meta: "searchScore" }
+      _id: 0,
+      title: 1,
+      score: { $meta: "searchScore" }
     }
   }
 ]);
 ```
 
 Tuning:
-- `maxEdits: 1` — typical for short words; high precision.
-- `maxEdits: 2` — better recall for longer words at the cost of noise.
-- Combine with a minimum `rank` threshold or a `$limit` after `$sort: { rank: -1 }` to cut low-relevance hits.
+
+- `maxEdits: 1` — typical for short words; high precision, good recall on one-character typos.
+- `maxEdits: 2` — better recall for longer words at the cost of noise. Don't use on 3–4-character tokens.
+- Short acronyms (≤3 chars) are better served by **edge n-gram** prefix matching than fuzzy — see `fts-custom-analyzers`.
+- Combine with a minimum score threshold (`$match: { score: { $gte: ... } }`) or a fixed `$limit` to cut low-relevance hits.
 
 ## References
 

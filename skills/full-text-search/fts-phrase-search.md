@@ -4,10 +4,11 @@
 
 ## Why it matters
 
-Phrase search matches query terms that appear **together in order**, with an optional `slop` tolerance for intervening tokens. Unlike a plain `text` query (which matches tokens anywhere in any order), `phrase` enforces proximity — critical for multi-word product names, quotes, or error messages where ordering matters.
+Phrase search matches query terms that appear **together in order**, with an optional `slop` tolerance for intervening tokens. Unlike a plain `text` query (which matches tokens anywhere in any order), `phrase` enforces proximity — critical for multi-word product names, quoted strings, or error messages where ordering matters.
 
 Use `phrase` on Azure DocumentDB when:
-- The user enters a quoted phrase (`"some good"`).
+
+- The user enters a quoted phrase (`"bracket controller"`).
 - You need title / entity / error-string matching where word order is meaningful.
 - Plain `text` returns too much noise because tokens are common individually but rare together.
 
@@ -16,47 +17,56 @@ Use `phrase` on Azure DocumentDB when:
 Using `text` when you actually need ordered proximity — high recall, low precision:
 
 ```javascript
-db.mongo_bm25_collection.aggregate([
-  { $search: { text: { query: "some good", path: "a" }, count: 5 } }
-  // Matches "some word good", "good word some", etc. — not what the user meant.
+db.products_10M.aggregate([
+  { $search: {
+      index: "idx_title_standard",
+      text: { query: "bracket controller", path: "title" }
+  }},
+  { $limit: 20 }
 ]);
+// Matches "controller for bracket", "bracket without controller", etc. —
+// not what the user meant.
 ```
 
-Or concatenating with regex to hack phrase behavior, losing BM25 ranking:
+Or concatenating with regex to hack phrase behaviour and losing BM25 ranking:
 
 ```javascript
-db.mongo_bm25_collection.find({ a: { $regex: "some.*good" } });
+db.products_10M.find({ title: { $regex: "bracket.*controller" } });
 ```
 
 ## Correct
 
 ```javascript
-db.mongo_bm25_collection.aggregate([
+db.products_10M.aggregate([
   {
     $search: {
+      index: "idx_title_standard",
       phrase: {
-        query: "some good",
-        path: "a",
-        slop: 1
-      },
-      count: 5
+        query: "bracket controller",
+        path: "title",
+        slop: 3
+      }
     }
   },
+  { $limit: 20 },
   {
     $project: {
-      a: 1,
-      rank: { $meta: "searchScore" }
+      _id: 0,
+      title: 1,
+      score: { $meta: "searchScore" }
     }
   }
 ]);
 ```
 
 `slop` guidance:
-- `slop: 0` — exact adjacency, strictest.
-- `slop: 1` — allows one intervening token (e.g., `"some word good"` matches `"some good"`).
-- `slop: 2+` — broader proximity; use carefully.
 
-Combine `phrase` with equality/range filters in a later `$match` stage, and sort by `rank` desc to return the best matches first.
+- `slop: 0` — strict adjacency. Matches `"bracket controller"` but not `"bracket for controller"`.
+- `slop: 1` — allows one intervening token. Matches `"bracket for controller"`.
+- `slop: 3` — broader proximity; useful for titles with adjectives or articles between the terms.
+- **Don't combine `phrase` with `fuzzy`** — they're separate operators. If you need both typo tolerance and ordering, run two queries and fuse the results.
+
+Combine `phrase` with equality/range filters in a later `$match` stage, never inside the `$search`.
 
 ## References
 

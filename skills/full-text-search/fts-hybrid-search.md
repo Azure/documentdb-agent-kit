@@ -4,11 +4,12 @@
 
 ## Why it matters
 
-Keyword search (BM25 via `textSearch`) and vector search (`cosmosSearch` DiskANN) each fail in predictable ways:
-- Keyword search misses paraphrases and synonyms.
-- Vector search misses exact identifiers, part numbers, and rare terms.
+Keyword search (BM25 via `$search` + `createSearchIndexes`) and vector search (`cosmosSearch` DiskANN) each fail in predictable ways:
 
-**Hybrid search** runs both and fuses the result lists, typically giving higher recall *and* precision than either alone. Azure DocumentDB supports both indexes on the same collection, so you can execute both queries in one round trip and combine them in the application or via Reciprocal Rank Fusion (RRF).
+- **Keyword search** misses paraphrases and synonyms — `"water-resistant jacket"` won't rank `"waterproof coat"` highly.
+- **Vector search** misses exact identifiers and rare terms — embeddings don't preserve `"SKU-4821-A"` well.
+
+**Hybrid search** runs both and fuses the result lists, typically giving higher recall *and* precision than either alone. Azure DocumentDB supports both index types on the same collection, so you can execute both queries in one round trip and combine them in the application — today with Reciprocal Rank Fusion (RRF), since `$search` `compound` is not yet available (see `fts-multifield-index`).
 
 ## Incorrect
 
@@ -21,13 +22,23 @@ Or shipping vector-only search for a catalog where users type SKUs (`"SKU-4821-A
 1. Index both on the collection:
 
 ```javascript
-// BM25 on the searchable text
+// BM25 on the searchable text (createSearchIndexes, not createIndexes)
 db.runCommand({
-  createIndexes: "products",
-  indexes: [{ key: { description: "textSearch" }, name: "desc_fts" }]
+  createSearchIndexes: "products",
+  indexes: [
+    {
+      name: "idx_description_fts",
+      definition: {
+        mappings: {
+          dynamic: false,
+          fields: { description: { type: "string" } }
+        }
+      }
+    }
+  ]
 });
 
-// Vector on the embedding
+// Vector on the embedding (cosmosSearch, unchanged)
 db.products.createIndex(
   { embedding: "cosmosSearch" },
   {
@@ -44,11 +55,17 @@ db.products.createIndex(
 2. Run both queries and fuse with RRF (simple, effective):
 
 ```javascript
+// Keyword arm — note: index + $limit stage, no `count` field
 const kwHits = await db.products.aggregate([
-  { $search: { text: { query: userQuery, path: "description" }, count: 50 } },
+  { $search: {
+      index: "idx_description_fts",
+      text: { query: userQuery, path: "description" }
+  }},
+  { $limit: 50 },
   { $project: { _id: 1, kw: { $meta: "searchScore" } } }
 ]).toArray();
 
+// Vector arm
 const qv = await embed(userQuery);
 const vecHits = await db.products.aggregate([
   { $search: { cosmosSearch: { path: "embedding", query: qv, k: 50 } } },
@@ -74,9 +91,11 @@ const fused = rrf([kwHits, vecHits]);
 ```
 
 Tips:
-- Keep individual `count` / `k` modest (20–100) — RRF doesn't need deep lists to improve quality.
+
+- Keep individual list size (`$limit` / `k`) modest (20–100). RRF doesn't need deep lists to improve quality.
 - If one signal is clearly more reliable for a workload, weight it: `score += w / (k + rank)`.
 - Cache embeddings for popular queries to reduce per-request latency.
+- When the `$search` `compound` operator ships, you'll be able to express the keyword arm as a single multi-field `should` clause instead of fanning out per field — see `fts-multifield-index`.
 
 ## References
 

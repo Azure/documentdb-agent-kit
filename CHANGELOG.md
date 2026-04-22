@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-04-21 — `full-text-search`: corrected to `createSearchIndexes` + `$search` syntax; added analyzer rules
+
+Previous rules documented the community MongoDB shape (`createIndexes` with `{ field: "textSearch" }` keys and a `count` field inside `$search`). Azure DocumentDB full-text search actually uses:
+
+- `runCommand({ createSearchIndexes: "<col>", indexes: [{ name, definition: { mappings: { dynamic, fields }, analyzers? } }] })` for index creation
+- `$search: { index: "<name>", text|phrase: { query, path } }` + a downstream `{ $limit: N }` stage (no `count` field)
+- Index names referenced explicitly in `$search` because the engine does not auto-pick when multiple exist
+
+Rule changes:
+
+- Renamed `fts-create-textsearch-index.md` → **`fts-create-search-index.md`**; rewrote with `createSearchIndexes` / `definition.mappings` and `dynamic: false` guidance.
+- Rewrote `fts-basic-search.md`, `fts-fuzzy-search.md`, `fts-phrase-search.md`, `fts-hybrid-search.md` to use the correct syntax (no `count`, uses `$limit`, specifies `index`).
+- New **`fts-custom-analyzers.md`** — index-time `edgeGram` + search-time plain `keyword` analyzer pair for case-insensitive prefix matching on SKUs / part numbers / codes, with `lowerCase` + `asciiFolding` token filter ordering.
+- New **`fts-path-hierarchy.md`** — `pathHierarchy` tokenizer for hierarchical identifiers (`BN-747-ENG-2024.05`, dotted paths, slash paths).
+- New **`fts-multifield-index.md`** — single search index mapping multiple ID-like fields; fan-out-and-merge pattern while `$search` `compound` (`should` / `minimumShouldMatch`) is not yet supported.
+- Updated SKILL.md front-matter and rule list; expanded the top-level README FTS row to reflect the broader surface.
+- Fixed cross-references using the old syntax elsewhere in the kit: `skills/indexing/index-text-prefer-textsearch.md` (rewrote to use `createSearchIndexes`; refreshed related-rules links), `skills/indexing/index-pattern-cookbook.md` (recipe 14 now uses `createSearchIndexes` + `$limit`), `skills/query-optimizer/references/core-indexing-principles.md` (table + special-indexes section), and `AGENTS.md` (skill row + intro sentence).
+
 ## 2026-04-21 — `azure-deployment`: interactive subscription / RG / region pickers
 
 - `SKILL.md` now requires the agent to **list subscriptions first, then resource groups, then regions** (only if creating a new RG). These are now Steps 1, 2, and 3; the remaining cluster inputs moved to Step 4 and deployment paths to Step 6. The previous single "gather inputs" table collapsed these into one prompt, which made agents silently assume the active subscription.

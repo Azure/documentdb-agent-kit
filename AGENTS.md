@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This repository is an **Agent Skills** pack for **Azure DocumentDB (with MongoDB compatibility)** — the managed Azure service built on the open-source [DocumentDB](https://github.com/microsoft/documentdb) project. Every skill targets Azure DocumentDB specifically; rules call out DocumentDB features that differ from community MongoDB (`cosmosSearch` vector indexes, `textSearch` full-text indexes, auto-sharding, cluster M-tiers, Entra RBAC, CMK, etc.).
+This repository is an **Agent Skills** pack for **Azure DocumentDB (with MongoDB compatibility)** — the managed Azure service built on the open-source [DocumentDB](https://github.com/microsoft/documentdb) project. Every skill targets Azure DocumentDB specifically; rules call out DocumentDB features that differ from community MongoDB (`cosmosSearch` vector indexes, `createSearchIndexes` full-text search, auto-sharding, cluster M-tiers, Entra RBAC, CMK, etc.).
 
 ## How agents should use this kit
 
@@ -24,7 +24,7 @@ These skills each describe a feature area and link to short rule files with inco
 | `documentdb-indexing` | `skills/indexing/` | Choosing the right index type (single / compound / multikey / wildcard / hashed / 2dsphere / TTL); ESR ordering; query-pattern → index-shape cookbook; safe index lifecycle (`hideIndex` → `dropIndex`) |
 | `documentdb-driver` | `skills/driver/` | Singleton `MongoClient`, connection reuse fundamentals |
 | `documentdb-vector-search` | `skills/vector-search/` | `cosmosSearch` with DiskANN / HNSW / IVF, PQ, fp16, cosine normalization |
-| `documentdb-full-text-search` | `skills/full-text-search/` | `textSearch` index, `$search` with `text` / `phrase` / `fuzzy`, BM25 + vector hybrid |
+| `documentdb-full-text-search` | `skills/full-text-search/` | `$search` with `createSearchIndexes`, custom analyzers (edgeGram, pathHierarchy), fuzzy / phrase / prefix, multi-field indexes, BM25 + vector hybrid |
 | `documentdb-high-availability` | `skills/high-availability/` | HA, cross-region replica, 99.99% / 99.995% SLAs |
 | `documentdb-security` | `skills/security/` | TLS, Private Endpoint, Entra RBAC, CMK |
 | `documentdb-monitoring` | `skills/monitoring/` | Diagnostic settings, slow-query logs, metrics & alerts |

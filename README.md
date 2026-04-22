@@ -21,7 +21,7 @@ why it matters → incorrect example → correct example → references.
 | `skills/indexing/` | `index-` | Index-type selection (single / compound-ESR / multikey / wildcard / hashed / 2dsphere / TTL), query-pattern → index-shape cookbook, index budget, safe `hideIndex` → `dropIndex` lifecycle |
 | `skills/driver/` | `driver-` | MongoDB driver/SDK usage (singleton client, pooling) |
 | `skills/vector-search/` | `vector-` | `cosmosSearch` with DiskANN / HNSW / IVF, PQ, fp16 |
-| `skills/full-text-search/` | `fts-` | `textSearch` index, `$search` with `text`/`phrase`/`fuzzy`, hybrid (BM25 + vector) |
+| `skills/full-text-search/` | `fts-` | `createSearchIndexes` + `$search` for BM25 keyword / phrase / fuzzy; custom analyzers (keyword + edgeGram) for prefix matching on IDs; `pathHierarchy` for hierarchical identifiers; multi-field search indexes; hybrid (BM25 + vector) with RRF |
 | `skills/high-availability/` | `ha-` | Enabling HA, cross-region replica, documented SLAs |
 | `skills/security/` | `security-` | TLS, Private Endpoint, Microsoft Entra RBAC, CMK |
 | `skills/monitoring/` | `monitoring-` | Slow query logs, metrics & alerts |

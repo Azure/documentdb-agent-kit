@@ -29,7 +29,7 @@ Azure DocumentDB supports the standard MongoDB index types:
 | **Single field** | Basic filters on one field |
 | **Compound** | Multi-field filters, filter+sort, filter+sort+range |
 | **Multikey** | Arrays (created implicitly when a field is an array) |
-| **Text** (`textSearch`) | Full-text search via the `$search` aggregation stage |
+| **Text** (`createSearchIndexes`) | Full-text search via the `$search` aggregation stage (separate from `createIndex`) |
 | **Geospatial** (`2dsphere`) | `$near`, `$geoWithin`, `$geoIntersects` |
 | **Wildcard** | Unknown / dynamic field names |
 | **Unique** | Enforce uniqueness |
@@ -155,11 +155,14 @@ db.orders.find(
 
 ## Special Index Categories
 
-### Text (`textSearch`)
+### Text (`createSearchIndexes`)
 
-Full-text search uses a dedicated `textSearch` index queried through
-`$search` — **not** the community `$text` operator. See the
-`full-text-search/` rules for syntax, scoring, fuzzy, and phrase operators.
+Full-text search uses a dedicated search index created with the
+`createSearchIndexes` database command and queried through the
+`$search` aggregation stage — **not** `createIndex({ field: "text" })`
+and **not** the community `$text` operator. See the
+`full-text-search/` rules for syntax, custom analyzers (edgeGram,
+pathHierarchy), scoring, fuzzy, and phrase operators.
 
 ### Vector (`cosmosSearch`)
 
