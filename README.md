@@ -4,6 +4,43 @@ A collection of skills for AI coding agents working with **Azure DocumentDB (wit
 
 Skills follow the [Agent Skills](https://agentskills.io/) format.
 
+## Deploy an Azure DocumentDB cluster in minutes
+
+Two paths ship in this kit — pick one:
+
+### 🤖 Agent-driven (natural language)
+Open this repo in an agent that reads `AGENTS.md` (Claude Code, GitHub Copilot CLI, Cursor, Gemini CLI) and just ask:
+
+> *"Deploy an Azure DocumentDB cluster for me."*
+
+The `documentdb-azure-deployment` skill takes over and walks you through:
+
+1. **Preflight** — verifies `az` is installed, you're signed in, and the `Microsoft.DocumentDB` provider is registered
+2. **Production or dev/test?** — picks safe defaults (M30 + ZoneRedundant HA + 128 GiB for prod; M10 + HA Disabled + 32 GiB for dev)
+3. **Pick subscription** — lists all subscriptions on your account
+4. **Pick resource group** — lists existing RGs or lets you create a new one
+5. **Pick region** — lists only regions that support `mongoClusters` (when creating a new RG)
+6. **Cluster inputs** — name, admin credentials (Key Vault–backed), storage, shards, HA mode, firewall posture
+7. **Deploy** — generates Bicep (primary), Azure CLI, or Terraform; runs `az deployment group create`; retrieves the connection string
+
+The agent confirms every command before running it — nothing deploys without your approval.
+
+### 🛠 No-agent (shell script)
+Prefer to run it yourself? Clone the repo and use the ready-to-deploy Bicep + wrapper scripts in [`examples/azure-deployment/`](examples/azure-deployment/):
+
+```bash
+cd examples/azure-deployment
+./deploy.sh                 # fully interactive — same picker flow as the agent
+# ...or pre-fill inputs:
+./deploy.sh rg-docdb-dev eastus2 main.parameters.dev.json
+```
+
+PowerShell equivalent: `./deploy.ps1`. Both scripts implement the same preflight → subscription → RG → region flow, then ask for `y/N` confirmation before provisioning.
+
+> **Production-safe defaults.** Running `./deploy.sh` with no parameters file produces an M30 / ZoneRedundant HA / 128 GiB cluster — a real production-class deployment, not a free tier. For prototyping, pass `main.parameters.dev.json` (M10 / HA Disabled / 32 GiB).
+
+See [`skills/azure-deployment/SKILL.md`](skills/azure-deployment/SKILL.md) for the full 10-step workflow including teardown.
+
 ## Available Skills
 
 The kit contains two kinds of skills under `skills/`:
