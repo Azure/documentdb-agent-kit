@@ -136,16 +136,28 @@ See [index-2dsphere-geospatial](index-2dsphere-geospatial.md).
 
 ### 14. Full-text (keyword) search
 
-Prefer Azure DocumentDB's `textSearch` index — see [index-text-prefer-textsearch](index-text-prefer-textsearch.md).
+Prefer Azure DocumentDB's dedicated search index (`createSearchIndexes` + `$search`) — see [index-text-prefer-textsearch](index-text-prefer-textsearch.md) and the `full-text-search/` rules.
 
 ```javascript
 db.runCommand({
-  createIndexes: "products",
-  indexes: [{ key: { description: "textSearch" }, name: "description_textSearch" }]
+  createSearchIndexes: "products",
+  indexes: [{
+    name: "idx_description_fts",
+    definition: {
+      mappings: {
+        dynamic: false,
+        fields: { description: { type: "string" } }
+      }
+    }
+  }]
 });
 
 db.products.aggregate([
-  { $search: { text: { query: "wireless headphones", path: "description" } } },
+  { $search: {
+      index: "idx_description_fts",
+      text: { query: "wireless headphones", path: "description" }
+  }},
+  { $limit: 10 },
   { $project: { name: 1, score: { $meta: "searchScore" } } }
 ]);
 ```
