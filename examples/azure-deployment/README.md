@@ -7,14 +7,14 @@ A no-agent-required deployment of an Azure DocumentDB cluster (`Microsoft.Docume
 | File | Purpose |
 |---|---|
 | `main.bicep` | Parameterized cluster template (tier, storage, HA, firewall) |
-| `main.parameters.sample.json` | **Production-default** sample: M30 + ZoneRedundant HA + 128 GiB, Key Vault secret reference |
+| `main.parameters.sample.json` | **Production-default** sample: M30 + ZoneRedundantPreferred HA + 128 GiB, Key Vault secret reference |
 | `main.parameters.dev.json` | **Dev/prototype** sample: M10 + HA Disabled + 32 GiB |
 | `deploy.sh` | Bash deploy script with preflight checks + confirm prompt |
 | `deploy.ps1` | PowerShell equivalent of `deploy.sh` |
 
 ## Defaults (important)
 
-`main.bicep` ships with **production-safe defaults**: `computeTier = M30`, `haTargetMode = ZoneRedundant`, `storageSizeGb = 128`. A `./deploy.sh <rg> <location>` with no parameters file produces a real production-class cluster — not a free tier.
+`main.bicep` ships with **production-safe defaults**: `computeTier = M30`, `haTargetMode = ZoneRedundantPreferred`, `storageSizeGb = 128`. A `./deploy.sh <rg> <location>` with no parameters file produces a real production-class cluster — not a free tier.
 
 For dev/prototype use, pass `main.parameters.dev.json` (M10, HA Disabled, 32 GiB) or override individual parameters on the CLI:
 
@@ -77,7 +77,7 @@ To automate (no prompts), pre-fill everything and pass `SKIP_CONFIRM=1 ./deploy.
 ## Production notes
 
 - **Secrets.** Never commit a real password in `main.parameters.json`. Use the Key Vault reference in the sample file, or pass the password inline from your shell's own secret source.
-- **HA.** Set `haTargetMode` to `SameZone` or `ZoneRedundant`. Requires `computeTier` M30 or higher.
+- **HA.** Set `haTargetMode` to `SameZone` or `ZoneRedundantPreferred`. Requires `computeTier` M30 or higher.
 - **Firewall.** The default `allowAzureServices: true` adds the documented `0.0.0.0–0.0.0.0` shortcut rule ("Allow Azure services and resources within Azure to access this cluster"). For production with Private Endpoint, set `allowAzureServices: false` and follow the Private Endpoint pattern in `skills/azure-deployment/references/bicep-cluster-template.md`.
 - **Provider registration.** `Microsoft.DocumentDB` registration is subscription-wide and only needs to happen once.
 

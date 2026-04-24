@@ -4,7 +4,7 @@
 
 ## Why it matters
 
-Azure DocumentDB **does not require a shard key** until the database surpasses terabyte scale — it auto-shards transparently. Many MongoDB best-practice guides assume Atlas-style sharding on day one; applying that advice to DocumentDB adds complexity, constrains queries, and forfeits the auto-sharding benefit.
+Azure DocumentDB **does not require a shard key** until the database surpasses terabyte scale. Many MongoDB best-practice guides assume Atlas-style sharding on day one; applying that advice to DocumentDB adds complexity and constrains queries unnecessarily.
 
 Scale order for DocumentDB:
 

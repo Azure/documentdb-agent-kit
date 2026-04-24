@@ -14,7 +14,7 @@
     "computeTier":      { "value": "M30" },
     "storageSizeGb":    { "value": 128 },
     "shardCount":       { "value": 1 },
-    "haTargetMode":     { "value": "ZoneRedundant" },
+    "haTargetMode":     { "value": "ZoneRedundantPreferred" },
     "serverVersion":    { "value": "8.0" },
     "allowAzureServices": { "value": true }
   }

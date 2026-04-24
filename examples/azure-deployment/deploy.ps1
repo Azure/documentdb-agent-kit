@@ -146,7 +146,7 @@ if ($ParametersFile) {
     Write-Warn2 "No parameters file provided — main.bicep defaults will apply:"
     Write-Warn2 "    computeTier   = M30           (production-class; not free tier)"
     Write-Warn2 "    storageSizeGb = 128 GiB"
-    Write-Warn2 "    haTargetMode  = ZoneRedundant (requires M30+)"
+    Write-Warn2 "    haTargetMode  = ZoneRedundantPreferred (requires M30+)"
     Write-Warn2 "    shardCount    = 1"
     Write-Warn2 "For dev/test, re-run with: -ParametersFile main.parameters.dev.json"
 }

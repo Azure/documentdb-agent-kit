@@ -39,7 +39,7 @@ param computeTier string = 'M30'
 @minValue(32)
 param storageSizeGb int = 128
 
-@description('Shard count. Start at 1; DocumentDB auto-shards until TB scale.')
+@description('Shard count. Start at 1; sufficient until TB scale.')
 @minValue(1)
 param shardCount int = 1
 
@@ -47,9 +47,9 @@ param shardCount int = 1
 @allowed([
   'Disabled'
   'SameZone'
-  'ZoneRedundant'
+  'ZoneRedundantPreferred'
 ])
-param haTargetMode string = 'ZoneRedundant'
+param haTargetMode string = 'ZoneRedundantPreferred'
 
 @description('MongoDB wire-protocol server version.')
 param serverVersion string = '8.0'
@@ -114,7 +114,7 @@ output clusterId string = cluster.id
     },
     "computeTier":    { "value": "M30" },
     "storageSizeGb":  { "value": 128 },
-    "haTargetMode":   { "value": "ZoneRedundant" }
+    "haTargetMode":   { "value": "ZoneRedundantPreferred" }
   }
 }
 ```
