@@ -58,12 +58,12 @@ Ask the user **before** anything else in Step 1. The answer drives every default
 |---|---|
 | Tier: **M30** (minimum that supports HA) | Tier: **M10** or M20 |
 | Storage: **128 GiB** per shard | Storage: **32 GiB** |
-| HA: **ZoneRedundant** | HA: **Disabled** |
+| HA: **ZoneRedundantPreferred** | HA: **Disabled** |
 | Firewall: Private Endpoint; `allowAzureServices: false` | `allowAzureServices: true` + developer IP rule |
 | Password source: **Key Vault reference** | Key Vault preferred; literal OK for throwaway |
 | Parameters file: `main.parameters.sample.json` | `main.parameters.dev.json` |
 
-Production is the safer default — the Bicep template and `main.parameters.sample.json` in `examples/azure-deployment/` ship with M30 + ZoneRedundant + 128 GiB so that a customer who runs `./deploy.sh <rg> <location>` without overrides ends up with a cluster they can actually put workloads on. If the user answers "dev", either:
+Production is the safer default — the Bicep template and `main.parameters.sample.json` in `examples/azure-deployment/` ship with M30 + ZoneRedundantPreferred + 128 GiB so that a customer who runs `./deploy.sh <rg> <location>` without overrides ends up with a cluster they can actually put workloads on. If the user answers "dev", either:
 
 - pass `--parameters @main.parameters.dev.json` to the deploy script, **or**
 - override on the command line:
@@ -76,7 +76,7 @@ Production is the safer default — the Bicep template and `main.parameters.samp
 
 ## Step 1 — pick the Azure subscription (always ask, never assume)
 
-The currently active subscription from `az account show` may not be the one the user wants. Always list and confirm.
+The currently active subscription from `az account show` may not be the one the user wants. Always list and confirm — never silently use the active one.
 
 ```bash
 # Show all subscriptions the signed-in user can access
@@ -84,43 +84,61 @@ az account list --query "[].{Name:name, SubscriptionId:id, State:state, IsDefaul
   --output table
 ```
 
-Present the numbered list to the user and ask them to pick one. Then set it active:
+Present the list to the user and ask them to pick one (by name or ID). Then set it active so subsequent commands are scoped to it:
 
 ```bash
 az account set --subscription "<subscription-id-or-name>"
 az account show --query "{name:name, id:id}" -o table   # confirm
 ```
 
+Record the chosen subscription ID as `$SUBSCRIPTION_ID` and pass `--subscription "$SUBSCRIPTION_ID"` to every subsequent `az` command in this flow — this guarantees RG / region lookups stay scoped to the user's choice even if the active context drifts.
+
 If the user has only one subscription, still confirm out loud ("I'll deploy into `<name>` — OK?") rather than silently proceeding.
 
-## Step 2 — pick the resource group (existing) or create a new one
+## Step 2 — pick the resource group in that subscription (existing or new)
 
-List the resource groups **in the chosen subscription**:
+List the resource groups **scoped to the chosen subscription** (do not omit `--subscription` — it prevents showing RGs from a different context):
 
 ```bash
-az group list --query "[].{Name:name, Location:location}" --output table
+az group list \
+  --subscription "$SUBSCRIPTION_ID" \
+  --query "[].{Name:name, Location:location}" \
+  --output table
 ```
 
-Ask the user to either:
+Present the list to the user and ask them to pick **one of**:
 
-**(a) Reuse an existing RG** — record its `location`; use it for the cluster's location too unless the user overrides. Skip Step 3.
+**(a) Reuse an existing RG** — take its `location` from the table above and use that as the cluster's region by default. **Skip Step 3** (the region is already fixed by the RG). Record it as `$LOCATION`.
 
-**(b) Create a new RG** — move to Step 3 to choose a location first.
+**(b) Create a new RG** — ask the user for the new RG name, then continue to Step 3 to pick a region before creating it.
 
-## Step 3 — pick the Azure region (only if creating a new RG)
+Do not proceed to Step 3 or Step 4 until the user has explicitly picked (a) or (b).
 
-List regions that support `Microsoft.DocumentDB/mongoClusters`:
+## Step 3 — pick the Azure region (only when creating a new RG)
+
+Reached only when the user chose 2(b). List the regions that support `Microsoft.DocumentDB/mongoClusters` so the user can pick one that is both regionally appropriate and supported:
 
 ```bash
-az provider show --namespace Microsoft.DocumentDB \
+az provider show \
+  --subscription "$SUBSCRIPTION_ID" \
+  --namespace Microsoft.DocumentDB \
   --query "resourceTypes[?resourceType=='mongoClusters'].locations[]" \
   --output tsv
 ```
 
-Present the list and ask the user to pick. Then create the RG:
+Present the list and ask the user to pick one. Record it as `$LOCATION`. Then create the RG in the chosen subscription + region:
 
 ```bash
-az group create --name "<new-rg-name>" --location "<chosen-region>"
+az group create \
+  --subscription "$SUBSCRIPTION_ID" \
+  --name "<new-rg-name>" \
+  --location "$LOCATION"
+```
+
+Confirm creation succeeded before moving on:
+
+```bash
+az group show --subscription "$SUBSCRIPTION_ID" --name "<new-rg-name>" --query "{name:name, location:location, state:properties.provisioningState}" -o table
 ```
 
 ## Step 4 — gather the remaining cluster inputs
@@ -134,8 +152,8 @@ Now that subscription, RG, and location are fixed, ask for cluster-specific valu
 | Admin password | — | 8–128 chars; store in Key Vault — **never commit** |
 | Compute tier | **M30** (prod default) / `M10`–`M20` (dev) | Full list: `M10`, `M20`, `M30`, `M40`, `M50`, `M60`, `M80`, `M200` |
 | Storage per shard (GiB) | **128** (prod default) / `32` (dev) | |
-| Shard count | `1` (auto-shard up to TB scale — see `documentdb-cluster-sharding`) | |
-| High availability | **ZoneRedundant** (prod default) / `SameZone` / `Disabled` (dev) | Non-Disabled values require M30+ |
+| Shard count | `1` (sufficient up to TB scale — see `documentdb-cluster-sharding`) | |
+| High availability | **ZoneRedundantPreferred** (prod default) / `SameZone` / `Disabled` (dev) | Non-Disabled values require M30+ |
 | MongoDB server version | `8.0` | |
 | Public network access | Default `Enabled` with firewall rules | Or disable and attach Private Endpoint (see `documentdb-security`) |
 
@@ -231,7 +249,21 @@ Never paste a real password on the command line in shared terminals — read it 
 
 ## Step 6c — deploy with Terraform
 
-Prefer this when the user already uses Terraform. The `azurerm` provider supports `azurerm_cosmosdb_mongo_cluster` / equivalent `Microsoft.DocumentDB/mongoClusters` resource. Full quickstart: https://learn.microsoft.com/azure/documentdb/quickstart-terraform — the same parameters as Step 1 apply.
+Prefer this when the user already uses Terraform. The AzureRM provider 4.x exposes `azurerm_mongo_cluster`, which targets `Microsoft.DocumentDB/mongoClusters` API `2025-09-01`.
+
+Load `references/terraform-cluster-template.md` for the canonical `main.tf` (with variables, validation, sample `terraform.tfvars`, and the firewall-rule pattern via the AzAPI provider). Then:
+
+```bash
+export ARM_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+export TF_VAR_admin_password=$(az keyvault secret show \
+  --vault-name <kv-name> --name docdb-admin-password --query value -o tsv)
+
+terraform init -upgrade
+terraform plan  -out main.tfplan
+terraform apply main.tfplan
+```
+
+The provider's `high_availability_mode` accepts only `Disabled` and `ZoneRedundantPreferred` (the API also accepts `SameZone`, but that mode is not exposed through `azurerm_mongo_cluster` 4.x — use the Bicep template if you need it). Full Microsoft quickstart: https://learn.microsoft.com/azure/documentdb/quickstart-terraform.
 
 ## Step 7 — verify the deployment
 
@@ -291,7 +323,7 @@ Confirm with the user before running — this removes everything in the resource
 - [Quickstart: Deploy an Azure DocumentDB cluster using Bicep](https://learn.microsoft.com/azure/documentdb/quickstart-bicep)
 - [Quickstart: Create an Azure DocumentDB cluster by using the Azure portal](https://learn.microsoft.com/azure/documentdb/quickstart-portal)
 - [`Microsoft.DocumentDB/mongoClusters` resource reference](https://learn.microsoft.com/azure/templates/microsoft.documentdb/mongoclusters)
-- Loaded as needed: `references/bicep-cluster-template.md`
+- Loaded as needed: `references/bicep-cluster-template.md`, `references/terraform-cluster-template.md`
 - Ready-to-run copy (no agent required): [`examples/azure-deployment/`](../../examples/azure-deployment/)
 
 ## Related skills

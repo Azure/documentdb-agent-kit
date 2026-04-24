@@ -6,7 +6,7 @@
 
 A **hashed index** (`{ field: "hashed" }`) stores a hash of the field's value instead of the raw value. Its main purpose is enabling **hashed shard keys**, which distribute writes evenly across shards — essential when a monotonically increasing key (e.g., `_id: ObjectId()`, `createdAt`) would otherwise hot-spot a single shard.
 
-Azure DocumentDB **auto-shards**; an explicit shard key isn't required until the database grows past terabyte scale (see `cluster-sharding/cluster-scale-before-shard`). When you do shard, hashed vs ranged is the first decision:
+In Azure DocumentDB, an explicit shard key isn't required until the database grows past terabyte scale (see `cluster-sharding/cluster-scale-before-shard`). When you do shard, hashed vs ranged is the first decision:
 
 | Property | Hashed shard key | Ranged shard key |
 |---|---|---|

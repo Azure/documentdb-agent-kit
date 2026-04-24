@@ -85,7 +85,7 @@ Rule changes:
 ## 2026-04-21 — Retargeted to Azure DocumentDB (v0.2.0)
 
 - Kit now targets **Azure DocumentDB (with MongoDB compatibility)** — the managed service built on the open-source DocumentDB project.
-- Rewrote Sharding rules around DocumentDB's auto-sharding model (shard key not required until terabytes).
+- Rewrote Sharding rules around DocumentDB's sharding model (shard key not required until terabytes).
 - Rewrote Vector rules to reflect DocumentDB's `cosmosSearch` with **DiskANN** (recommended), HNSW, and IVF; added Product Quantization and Half-Precision indexing rules.
 - Updated HA rules with the documented SLAs (99.99% HA, 99.995% HA + cross-region replica).
 - Removed Full-Text Search category (not a first-class DocumentDB feature).

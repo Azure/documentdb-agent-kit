@@ -6,10 +6,10 @@ license: MIT
 
 # Cluster Design & Sharding — Azure DocumentDB
 
-Azure DocumentDB **auto-shards**; a shard key is **not required** until the database surpasses terabytes. Most scaling decisions are about picking the right M-tier first.
+In Azure DocumentDB, a shard key is **not required** until the database surpasses terabytes. Most scaling decisions are about picking the right M-tier first.
 
 ## Rules
 
 - [cluster-tier-selection](cluster-tier-selection.md) — Pick an M-tier (M10–M200+) based on working-set memory, vCPU, and vector-index size.
-- [cluster-scale-before-shard](cluster-scale-before-shard.md) — Scale vertically first; DocumentDB auto-shards and doesn't require a shard key until TB scale.
+- [cluster-scale-before-shard](cluster-scale-before-shard.md) — Scale vertically first; DocumentDB doesn't require a shard key until TB scale.
 - [cluster-shard-key-query-aligned](cluster-shard-key-query-aligned.md) — When you do shard at TB scale, pick a high-cardinality, query-aligned, immutable shard key.

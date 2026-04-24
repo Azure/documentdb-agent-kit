@@ -153,7 +153,7 @@ else
   warn "No parameters file provided — main.bicep defaults will apply:"
   warn "    computeTier   = M30           (production-class; not free tier)"
   warn "    storageSizeGb = 128 GiB"
-  warn "    haTargetMode  = ZoneRedundant (requires M30+)"
+  warn "    haTargetMode  = ZoneRedundantPreferred (requires M30+)"
   warn "    shardCount    = 1"
   warn "For dev/test, re-run with: $0 $RG $LOCATION main.parameters.dev.json"
 fi

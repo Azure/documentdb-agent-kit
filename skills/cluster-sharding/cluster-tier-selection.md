@@ -32,7 +32,7 @@ Size to the **binding constraint**, typically working-set memory:
 Rules of thumb:
 - Keep the **hot working set** (popular indexes + recent documents + vector index) under ~60–70% of cluster RAM.
 - Combine with **Product Quantization** or **Half-Precision** to fit larger vector indexes on smaller tiers (see `vector-product-quantization`, `vector-half-precision`).
-- Scale **up** before you scale **out**; DocumentDB auto-shards and doesn't require a shard key until TB scale.
+- Scale **up** before you scale **out**; DocumentDB doesn't require a shard key until TB scale.
 
 ## References
 
