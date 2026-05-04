@@ -1,5 +1,5 @@
 # documentdb-agent-kit
-
+\
 A collection of skills for AI coding agents working with **Azure DocumentDB (with MongoDB compatibility)** — the fully managed Azure service built on the open-source [DocumentDB](https://github.com/documentdb/documentdb) project (Postgres-backed, 99.03% MongoDB-compatible). Skills are packaged instructions and rule sets that extend agent capabilities.
 
 Skills follow the [Agent Skills](https://agentskills.io/) format.
