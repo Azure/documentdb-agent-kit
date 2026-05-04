@@ -4,6 +4,7 @@
   "description": "Official Codex plugin for Azure DocumentDB (MongoDB-compatible). MCP server + skills.",
   "author": {
     "name": "Azure",
+    "email": "mongodb-feedback@microsoft.com",
     "url": "https://azure.microsoft.com"
   },
   "homepage": "https://github.com/Azure/documentdb-agent-kit",
@@ -35,6 +36,8 @@
       "Write a MongoDB aggregation pipeline to analyze my data.",
       "Why is this query slow? Use explain() to recommend an index.",
       "Provision an Azure DocumentDB (MongoDB vCore) cluster with Bicep."
-    ]
+    ],
+    "logo": "./assets/logo.jpg",
+    "brandColor": "#0078D4"
   }
 }

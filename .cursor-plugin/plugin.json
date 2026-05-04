@@ -4,6 +4,7 @@
   "description": "Official Cursor plugin for Azure DocumentDB (MongoDB-compatible). MCP server + skills.",
   "author": {
     "name": "Azure",
+    "email": "mongodb-feedback@microsoft.com",
     "url": "https://azure.microsoft.com"
   },
   "homepage": "https://github.com/Azure/documentdb-agent-kit",
@@ -19,5 +20,6 @@
     "database"
   ],
   "skills": "./skills/",
-  "mcpServers": "./mcp.json"
+  "mcpServers": "./mcp.json",
+  "logo": "./assets/logo.jpg"
 }
