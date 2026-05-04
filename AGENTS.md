@@ -61,12 +61,18 @@ These skills walk the user (or another agent) through a task end-to-end.
 
 ## Cross-tool compatibility
 
-The same `skills/` tree is consumable by:
+This kit is distributed as an installable plugin/extension for every major coding agent. The plugin bundles the [DocumentDB MCP server](https://github.com/microsoft/documentdb-mcp) (`documentdb-mcp-server` on npm) together with the `skills/` tree.
 
-- **Claude Code** — copy or symlink `skills/` to `.claude/skills/` (project) or `~/.claude/skills/` (user).
-- **GitHub Copilot (CLI / IDE)** — this `AGENTS.md` at the repo root is the entry point; Copilot reads it automatically.
-- **Gemini CLI** — symlink `AGENTS.md` to `GEMINI.md`, or copy its contents.
-- **Any Agent Skills–compatible tool** — each skill folder has a `SKILL.md` with `name` + `description` front matter, per the [Agent Skills](https://agentskills.io/) format.
+| Agent | Install command | Manifest |
+|---|---|---|
+| Claude Code | `/plugin marketplace add Azure/documentdb-agent-kit` then `/plugin install documentdb` | [`.claude-plugin/`](.claude-plugin/) |
+| Cursor | `/add-plugin azure/documentdb-agent-kit` | [`.cursor-plugin/`](.cursor-plugin/) |
+| Codex | `codex plugin marketplace add azure/documentdb-agent-kit` | [`.codex-plugin/`](.codex-plugin/) + [`.agents/plugins/marketplace.json`](.agents/plugins/marketplace.json) |
+| Gemini CLI | `gemini extensions install https://github.com/Azure/documentdb-agent-kit` | [`gemini-extension.json`](gemini-extension.json) + [`GEMINI.md`](GEMINI.md) |
+| GitHub Copilot CLI | `/plugin install https://github.com/Azure/documentdb-agent-kit.git` | this `AGENTS.md` + [`mcp.json`](mcp.json) |
+| Skills only (any agent) | `npx skills add Azure/documentdb-agent-kit` | walks `skills/` directly (no MCP server) |
 
-See `README.md` for the exact per-tool install commands and the skill-validation script.
+All paths share the same `skills/` tree. Claude / Cursor / Codex / Copilot also share the root [`mcp.json`](mcp.json); Gemini inlines the same MCP config in its own manifest.
+
+See [`README.md`](README.md) for the full per-tool install + configuration walkthrough and [`docs/SKILLS.md`](docs/SKILLS.md) for the capability catalog.
 
