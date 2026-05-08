@@ -19,7 +19,6 @@ These skills each describe a feature area and link to short rule files with inco
 | Skill | Folder | When to use |
 |---|---|---|
 | `documentdb-data-modeling` | `skills/data-modeling/` | Designing schemas, embed vs reference, 16 MB limit, denormalization, schema versioning |
-| `documentdb-cluster-sharding` | `skills/cluster-sharding/` | Picking an M-tier, scaling decisions, shard-key design at TB scale |
 | `documentdb-query-optimization` | `skills/query-optimization/` | Writing queries that use indexes; reading `explain("executionStats")` |
 | `documentdb-indexing` | `skills/indexing/` | Choosing the right index type (single / compound / multikey / wildcard / hashed / 2dsphere / TTL); ESR ordering; query-pattern → index-shape cookbook; safe index lifecycle (`hideIndex` → `dropIndex`) |
 | `documentdb-driver` | `skills/driver/` | Singleton `MongoClient`, connection reuse fundamentals |
@@ -48,7 +47,6 @@ These skills walk the user (or another agent) through a task end-to-end.
 - **"Why is this query slow / how do I index this?"** → `documentdb-query-optimizer`
 - **"Which index type should I use / design this index"** → `documentdb-indexing`
 - **Designing a schema / data model** → `documentdb-data-modeling`
-- **Picking / sizing a cluster** → `documentdb-cluster-sharding`
 - **Adding vector search to a RAG app** → `documentdb-vector-search`
 - **Adding keyword / BM25 search** → `documentdb-full-text-search`
 - **Configuring `MongoClient` / connection string** → `documentdb-connection` (pool tuning) or `documentdb-driver` (basic patterns)

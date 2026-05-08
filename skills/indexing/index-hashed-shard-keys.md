@@ -6,7 +6,7 @@
 
 A **hashed index** (`{ field: "hashed" }`) stores a hash of the field's value instead of the raw value. Its main purpose is enabling **hashed shard keys**, which distribute writes evenly across shards — essential when a monotonically increasing key (e.g., `_id: ObjectId()`, `createdAt`) would otherwise hot-spot a single shard.
 
-In Azure DocumentDB, an explicit shard key isn't required until the database grows past terabyte scale (see `cluster-sharding/cluster-scale-before-shard`). When you do shard, hashed vs ranged is the first decision:
+In Azure DocumentDB, an explicit shard key isn't required until the database grows past terabyte scale. When you do shard, hashed vs ranged is the first decision:
 
 | Property | Hashed shard key | Ranged shard key |
 |---|---|---|
@@ -45,7 +45,7 @@ sh.shardCollection("app.events", { _id: "hashed" });
 // or accept scatter-gather.
 ```
 
-For **query-driven** workloads (orders by customer, posts by author), prefer a ranged shard key aligned with the dominant access pattern — see `cluster-sharding/cluster-shard-key-query-aligned`.
+For **query-driven** workloads (orders by customer, posts by author), prefer a ranged shard key aligned with the dominant access pattern.
 
 Guidelines:
 
@@ -56,4 +56,3 @@ Guidelines:
 ## References
 
 - [MongoDB hashed indexes](https://www.mongodb.com/docs/manual/core/index-hashed/)
-- `cluster-sharding/cluster-shard-key-query-aligned.md`
