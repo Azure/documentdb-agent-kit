@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-05-04 — Plugin manifests for Claude / Cursor / Codex / Gemini + bundled MCP server
+
+The kit now ships as an installable plugin/extension for every major coding agent, bundling the [DocumentDB MCP server](https://github.com/microsoft/documentdb-mcp) (`documentdb-mcp-server` on npm) alongside the existing `skills/` tree. Users get skills + database tools in a single install command.
+
+- New `.claude-plugin/plugin.json` + `.claude-plugin/marketplace.json` (Claude Code).
+- New `.cursor-plugin/plugin.json` (Cursor).
+- New `.codex-plugin/plugin.json` with full interface metadata (display name, capabilities, default prompts, brand color `#0078D4`) + `.agents/plugins/marketplace.json` for Codex marketplace discovery.
+- New `gemini-extension.json` + `GEMINI.md` (Gemini CLI extension format; inlines the MCP server config because Gemini extensions don't reference an external `mcp.json`).
+- New root `mcp.json` shared by Claude / Cursor / Codex: launches `documentdb-mcp-server` over stdio via `npx`, with `ENABLE_READ_TOOLS=true` and write/management tools opt-in. Backend access flows through the `DOCUMENTDB_CONNECTION_PROFILES` env var consumed by the server's connection-profile resolver.
+- New `assets/logo.jpg` referenced from the Cursor and Codex manifests.
+- Author email `mongodb-feedback@microsoft.com` set across the Claude / Cursor / Codex manifests.
+- `README.md` slimmed to install + configuration only; capability catalog moved to new `docs/SKILLS.md` so coding agents doing top-level file scans focus on `README.md` / `AGENTS.md` / `GEMINI.md` and skill loading remains driven by `skills/<name>/SKILL.md` frontmatter via the plugin manifest.
+- README now documents the universal `npx skills add Azure/documentdb-agent-kit` one-liner (skills.sh) for skills-only installs that don't need the MCP server.
+- `AGENTS.md` cross-tool compatibility section rewritten as a per-agent install table covering Claude, Cursor, Codex, Gemini, Copilot, and skills-only.
+
 ## 2026-04-21 — `full-text-search`: corrected to `createSearchIndexes` + `$search` syntax; added analyzer rules
 
 Previous rules documented the community MongoDB shape (`createIndexes` with `{ field: "textSearch" }` keys and a `count` field inside `$search`). Azure DocumentDB full-text search actually uses:

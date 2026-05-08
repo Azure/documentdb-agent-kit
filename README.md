@@ -1,123 +1,96 @@
 # documentdb-agent-kit
-\
-A collection of skills for AI coding agents working with **Azure DocumentDB (with MongoDB compatibility)** — the fully managed Azure service built on the open-source [DocumentDB](https://github.com/documentdb/documentdb) project (Postgres-backed, 99.03% MongoDB-compatible). Skills are packaged instructions and rule sets that extend agent capabilities.
 
-Skills follow the [Agent Skills](https://agentskills.io/) format.
+A bundle of agent skills + an MCP server for **Azure DocumentDB (MongoDB-compatible)** — the fully managed Azure service built on the open-source [DocumentDB](https://github.com/documentdb/documentdb) project (Postgres-backed, 99.03% MongoDB-compatible).
 
-## Available Skills
+Skills follow the [Agent Skills](https://agentskills.io/) format and the kit ships with plugin manifests for Claude Code, Cursor, Codex, Gemini CLI, and GitHub Copilot.
 
-The kit contains two kinds of skills under `skills/`:
-
-### Rule-folder skills — `<category>/<rule>.md`
-
-Best-practice rules grouped by feature. Each rule follows the same shape:
-why it matters → incorrect example → correct example → references.
-
-| Folder | Prefix | Focus |
-|---|---|---|
-| `skills/data-modeling/` | `model-` | Embed vs reference, 16 MB limit, denormalization, schema versioning |
-| `skills/cluster-sharding/` | `cluster-` | M-tier selection, vertical-first scaling, shard-key design |
-| `skills/query-optimization/` | `query-` | `explain("executionStats")`, avoiding `COLLSCAN` |
-| `skills/indexing/` | `index-` | Index-type selection (single / compound-ESR / multikey / wildcard / hashed / 2dsphere / TTL), query-pattern → index-shape cookbook, index budget, safe `hideIndex` → `dropIndex` lifecycle |
-| `skills/driver/` | `driver-` | MongoDB driver/SDK usage (singleton client, pooling) |
-| `skills/vector-search/` | `vector-` | `cosmosSearch` with DiskANN / HNSW / IVF, PQ, fp16 |
-| `skills/full-text-search/` | `fts-` | `createSearchIndexes` + `$search` for BM25 keyword / phrase / fuzzy; custom analyzers (keyword + edgeGram) for prefix matching on IDs; `pathHierarchy` for hierarchical identifiers; multi-field search indexes; hybrid (BM25 + vector) with RRF |
-| `skills/high-availability/` | `ha-` | Enabling HA, cross-region replica, documented SLAs |
-| `skills/security/` | `security-` | TLS, Private Endpoint, Microsoft Entra RBAC, CMK |
-| `skills/monitoring/` | `monitoring-` | Slow query logs, metrics & alerts |
-| `skills/local-deployment/` | `local-` | Docker image choice, Compose, TLS, env-driven config, dev/prod parity |
-
-### Standalone SKILL.md skills — `<skill>/SKILL.md`
-
-Single-purpose skills the agent loads when its trigger description matches.
-
-| Skill | Triggers |
-|---|---|
-| `skills/mcp-setup/` | Configuring the DocumentDB MCP server (connection string, transport, shell profile) |
-| `skills/azure-deployment/` | Provisioning an Azure DocumentDB cluster (`Microsoft.DocumentDB/mongoClusters`) — Bicep (with Key Vault), Azure CLI one-shot, Terraform pointer, firewall, connection string, teardown. See also [`examples/azure-deployment/`](examples/azure-deployment/) for a no-agent ready-to-run deploy. |
-| `skills/natural-language-querying/` | "How do I query…", filter/aggregate/group requests, SQL → MQL translation |
-| `skills/query-optimizer/` | "Why is this query slow?", index review, `explain()`-driven tuning (indexing deep-dive lives in its `references/`) |
-| `skills/connection/` | Connection pool / timeout / retry tuning; serverless vs OLTP vs OLAP patterns |
-
-**Use when:**
-- Designing document schemas for Azure DocumentDB
-- Sizing cluster tiers (M10 – M200+) and deciding when to shard
-- Writing or reviewing queries and aggregation pipelines
-- Configuring MongoDB drivers against Azure DocumentDB
-- Implementing vector search (DiskANN / HNSW / IVF via `cosmosSearch`)
-- Applying product quantization or half-precision indexing for AI workloads
-- Running DocumentDB locally via Docker / Compose
-- Configuring HA, cross-region replication, CMK, firewall, and RBAC
-- Optimizing indexes or diagnosing slow queries
+👉 **Capabilities and skill catalog:** [`docs/SKILLS.md`](docs/SKILLS.md)
 
 ## Installation
 
-```bash
-npx skills add <org>/documentdb-agent-kit
-```
-
-## Repo Structure
-
-```
-skills/
-  <category>/            # rule-folder skill (data-modeling, vector-search, …)
-    <rule>.md            # one markdown file per rule
-    references/          # deep-dive reference docs (optional)
-  <skill>/               # standalone skill (mcp-setup, query-optimizer, …)
-    SKILL.md             # agent-facing activation + instructions
-    references/          # reference docs the skill loads at runtime
-```
-
-## Installation
-
-This kit follows the [Agent Skills](https://agentskills.io/) format. Every skill folder under `skills/` has a `SKILL.md` with `name` + `description` front matter, so Agent Skills–compatible tools can discover them automatically.
+The plugin bundles the [DocumentDB MCP server](https://github.com/microsoft/documentdb-mcp) (`documentdb-mcp-server` on npm — Node.js 20+) together with all skills under `skills/`.
 
 ### Claude Code
 
-Project-scoped (only this repo sees the skills):
+Inside a Claude Code session:
 
-```bash
-mkdir -p .claude && ln -s "$(pwd)/skills" .claude/skills
+```text
+/plugin marketplace add Azure/documentdb-agent-kit
+/plugin install documentdb@azure-documentdb
 ```
 
-User-scoped (every project sees the skills):
+### Cursor
 
-```bash
-mkdir -p ~/.claude/skills
-for d in skills/*/; do ln -s "$(pwd)/$d" ~/.claude/skills/; done
+```text
+/add-plugin azure/documentdb-agent-kit
 ```
 
-On Windows/PowerShell, use `New-Item -ItemType SymbolicLink` or just copy the folder.
+### Codex
 
-### GitHub Copilot (CLI and IDE)
-
-`AGENTS.md` at the repo root is the entry point — Copilot reads it automatically when you open the repo. No extra wiring required. If you want Copilot to see the kit in a *different* repo, copy `AGENTS.md` and the `skills/` folder into that repo's root.
+```bash
+codex plugin marketplace add azure/documentdb-agent-kit
+codex plugin install documentdb
+```
 
 ### Gemini CLI
 
-Gemini CLI reads `GEMINI.md`:
+```bash
+gemini extensions install https://github.com/Azure/documentdb-agent-kit
+```
+
+### GitHub Copilot CLI
 
 ```bash
-ln -s AGENTS.md GEMINI.md      # or: cp AGENTS.md GEMINI.md
+/plugin install https://github.com/Azure/documentdb-agent-kit.git
 ```
 
-### Other Agent Skills–compatible tools
+Then restart Copilot CLI to activate the MCP server. For Copilot in the IDE, [`AGENTS.md`](AGENTS.md) at the repo root is read automatically — no extra wiring.
 
-Point the tool at `skills/` as your skills directory. Each `skills/<name>/SKILL.md` is a discoverable skill with its own `name` and `description`.
+### Universal one-liner — skills only (no MCP server)
 
-## Validating skills
+To install just the skill catalog into whichever agent you're using, via the [skills.sh](https://skills.sh/) CLI:
 
-A PowerShell validator lives at `scripts/validate-skills.ps1`. It verifies that every `skills/*/` folder contains a `SKILL.md` with valid YAML front matter containing both `name` and `description`:
-
-```powershell
-pwsh ./scripts/validate-skills.ps1
+```bash
+npx skills add Azure/documentdb-agent-kit
 ```
 
-Run it after adding new skills or editing front matter.
+This drops the rule docs into your agent's skill directory but **does not** install the MCP server. Use one of the per-agent plugin commands above if you want the DB tools too.
+
+## Configuration
+
+The MCP server is administrator-controlled: tools never accept runtime connection strings. Set `DOCUMENTDB_CONNECTION_PROFILES` in your shell before launching the agent.
+
+### Microsoft Entra / OIDC (recommended)
+
+```bash
+export DOCUMENTDB_CONNECTION_PROFILES='{"sandbox":{"authMode":"entra","endpoint":"<cluster>.mongocluster.cosmos.azure.com","tokenScope":"https://ossrdbms-aad.database.windows.net/.default","allowedHosts":["*.mongocluster.cosmos.azure.com"]}}'
+
+az login --tenant <tenant-id>
+```
+
+In Azure hosting, use managed identity or workload identity and grant that identity access to the backend database. The server uses `DefaultAzureCredential`, so the same profile shape works for local Azure CLI login and managed deployments.
+
+### Local / sandbox SCRAM
+
+```bash
+export DOCUMENTDB_CONNECTION_PROFILES='{"local":{"uriEnv":"DOCUMENTDB_LOCAL_URI"}}'
+export DOCUMENTDB_LOCAL_URI='mongodb://localhost:27017'
+```
+
+### Tool capability gates
+
+Read tools are enabled by default. Higher-impact tools are opt-in:
+
+```bash
+export ENABLE_WRITE_TOOLS=true        # insert / update / delete / find_and_modify
+export ENABLE_MANAGEMENT_TOOLS=true   # drop_database, drop_collection, create_index, ...
+```
+
+Or edit [`mcp.json`](mcp.json) directly. See the [DocumentDB MCP Server docs](https://github.com/microsoft/documentdb-mcp) for the full configuration surface.
 
 ## Compatibility
 
-Works with Claude Code, GitHub Copilot, Gemini CLI, and other Agent Skills-compatible tools.
+Works with Claude Code, Cursor, Codex, Gemini CLI, GitHub Copilot, and other Agent Skills–compatible tools.
 
 ## License
 

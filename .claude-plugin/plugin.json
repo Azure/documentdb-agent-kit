@@ -1,0 +1,24 @@
+{
+  "name": "documentdb",
+  "version": "0.1.0",
+  "description": "Official Claude plugin for Azure DocumentDB (MongoDB-compatible). Bundles the DocumentDB MCP server with skills for data modeling, indexing, query optimization, vector search, full-text search, deployment, security, and more.",
+  "author": {
+    "name": "Azure",
+    "email": "mongodb-feedback@microsoft.com",
+    "url": "https://azure.microsoft.com"
+  },
+  "homepage": "https://github.com/Azure/documentdb-agent-kit",
+  "repository": "https://github.com/Azure/documentdb-agent-kit",
+  "license": "MIT",
+  "keywords": [
+    "azure",
+    "documentdb",
+    "cosmosdb",
+    "mongodb",
+    "mcp",
+    "vector-search",
+    "database"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
+}
