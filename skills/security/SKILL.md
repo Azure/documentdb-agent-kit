@@ -23,6 +23,7 @@ A principal needs both layers for end-to-end access, and they are managed indepe
 
 - [security-tls-required](security-tls-required.md) — Always connect with TLS; never disable certificate validation in production.
 - [security-private-endpoint](security-private-endpoint.md) — Use Private Endpoint / firewall rules; disable public network access where possible.
+- [security-firewall-rules](security-firewall-rules.md) — IP firewall rules in CIDR form; "Allow Azure services" toggle; ~15-minute propagation delay; avoid the `0.0.0.0-255.255.255.255` shortcut.
 - [security-entra-rbac](security-entra-rbac.md) — Enable Microsoft Entra ID authentication, register principals as `mongoClusters/users`, connect with `MONGODB-OIDC`; prefer managed identities over passwords.
 - [security-azure-rbac-actions](security-azure-rbac-actions.md) — Azure resource-level RBAC: actions exposed by `Microsoft.DocumentDB/mongoClusters/*`, custom-role pattern, control-plane least-privilege.
 - [security-database-roles](security-database-roles.md) — MongoDB database roles for data-plane access: `readWriteAnyDatabase` + `clusterAdmin` must be granted together for read-write; `readAnyDatabase` for read-only; secondary-user management via mongo shell.
