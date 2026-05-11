@@ -149,7 +149,7 @@ If the replica is in a separate Terraform state, hard-code `source_server_id` an
 
 Promotion is a control-plane action (REST / portal); there is no IaC primitive for it. After promotion, the former replica becomes a standalone read-write cluster. The full operational checklist:
 
-1. **Trigger promotion** from the Azure portal: select the replica → **Settings → Global distribution → Promote**, confirm the cluster name. (Equivalent REST call available via `az rest`.)
+1. **Trigger promotion** from the Azure portal: select the replica → **Settings → Global distribution → Promote**, confirm the cluster name. (Equivalent REST call available via `az rest`.) During promotion, the **Global read-write** connection string is automatically updated to point at the newly promoted cluster, and **the ex-primary is automatically reconfigured as the new replica (read-only)** of the promoted cluster. This means you can "fail back" later by promoting the original cluster again — no need to recreate the replication relationship.
 2. **Re-enable HA on the promoted cluster.** HA is **not** carried over automatically — once the former replica becomes the new primary, set `highAvailability.targetMode` to `ZoneRedundantPreferred` so the promoted cluster regains the 99.99 % in-region SLA.
 3. **Update application connection strings.** Behavior depends on which string the app uses:
    - **Global read-write** (`<cluster>.global.mongocluster.cosmos.azure.com` on the original primary) — keeps working; it auto-routes to the new write region after promotion. **Use this in apps to avoid post-promotion code changes.**
@@ -161,13 +161,17 @@ Promotion is a control-plane action (REST / portal); there is no IaC primitive f
 
 See [Replica cluster promotion](https://learn.microsoft.com/azure/documentdb/cross-region-replication#replica-cluster-promotion) and [Manage cluster replication — Promote a replica](https://learn.microsoft.com/azure/documentdb/how-to-cluster-replica#promote-a-replica).
 
+### Monitoring the replica
+
+The replica is a full first-class cluster resource and has **its own Metrics** for resource consumption (CPU, memory, IOPS, storage, connections). Replica metrics are **not** aggregated into the primary's metrics — monitor both clusters independently and set alerts on each. See the `documentdb-monitoring` skill for the metric catalog and alerting patterns.
+
 ### Replica networking, encryption, and lifecycle
 
 These are independent per cluster — set them on the replica too, not just the primary:
 
 - **Networking** (firewall rules / Private Endpoints) is **independent on the replica**. To make the replica reachable for reads, configure its public-network access rules or wire up a Private Endpoint in the replica's region. The primary's networking is **not** inherited.
 - **Customer-Managed Keys (CMK)** can be configured on the replica at creation time, including a different CMK than the primary if you want region-local key isolation. CMK on an existing replica follows the same flow as on a standalone cluster.
-- **Disabling replication = deleting the replica.** There is no "disable replication" toggle. Delete the replica cluster from the Azure portal (or `az rest` DELETE) and the primary returns to standalone state.
+- **Disabling replication = deleting the replica.** There is no "disable replication" toggle. Delete the replica cluster from the Azure portal (or `az rest` DELETE) and the primary returns to standalone state. Deleting the replica does **not** affect data on or writes to the primary.
 - **Deletion order matters.** You **cannot delete the primary while a replica exists.** Delete the replica first, then the primary.
 - **Replica subscription / RG.** When created via portal during initial primary provisioning, the replica is placed in the **same subscription and resource group** as the primary. When created via IaC (Bicep / Terraform / REST), the replica may be deployed into a **different resource group** (and even a different region's RG); only `sourceResourceId` and `sourceLocation` matter for linkage.
 
@@ -177,5 +181,6 @@ These are independent per cluster — set them on the replica too, not just the 
 - [Reliability in Azure DocumentDB](https://learn.microsoft.com/azure/reliability/reliability-documentdb) — shared-responsibility DR model, manual cross-region promotion
 - [Cross-region replication](https://learn.microsoft.com/azure/documentdb/cross-region-replication)
 - [Manage cluster replication](https://learn.microsoft.com/azure/documentdb/how-to-cluster-replica)
+- [Troubleshoot cluster replication](https://learn.microsoft.com/azure/documentdb/troubleshoot-replication) — replica networking gotchas, per-cluster metrics, failback semantics
 - [`MongoClusterReplicaParameters` (ARM/Bicep)](https://learn.microsoft.com/azure/templates/microsoft.documentdb/mongoclusters#mongoclusterreplicaparameters)
 - [`azurerm_mongo_cluster` — `create_mode`, `source_server_id`, `source_location`](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/mongo_cluster)
