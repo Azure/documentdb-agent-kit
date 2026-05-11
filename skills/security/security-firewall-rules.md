@@ -4,13 +4,16 @@
 
 ## Why it matters
 
-When public network access is enabled on an Azure DocumentDB cluster, **firewall rules are the only thing standing between the database and the internet.** They allow inbound traffic from explicit IPv4 ranges in CIDR form. Firewall rules are independent of (and complementary to) Private Endpoint — Private Endpoint is the strong-isolation control (see [security-private-endpoint](security-private-endpoint.md)); firewall rules are for cases where you must keep public access on but want to scope it to known sources.
+When public network access is enabled on an Azure DocumentDB cluster, **firewall rules are the only thing standing between the database and the internet.** They allow inbound traffic from explicit IPv4 sources expressed as either **CIDR ranges** or **Start-IP / End-IP** pairs (the portal uses the latter; both are equivalent — a `/32` is a single IP, and the same address in Start and End fields does the same thing). Firewall rules are independent of (and complementary to) Private Endpoint — Private Endpoint is the strong-isolation control (see [security-private-endpoint](security-private-endpoint.md)); firewall rules are for cases where you must keep public access on but want to scope it to known sources.
 
-Three operational gotchas make this rule worth its own page:
+**Default state: locked down.** A newly created cluster with no firewall rules and no private endpoint has **public access effectively disabled** — nothing can reach the data plane until you either add a firewall rule or create a private endpoint. This is a default-deny posture; opening the cluster is a deliberate action, not the absence of one.
 
-1. **Firewall changes propagate in up to ~15 minutes** — during that window the firewall can behave inconsistently. Bake this into your runbooks; don't troubleshoot "connection refused" for the first 15 minutes after a change.
-2. **"Allow public access from Azure resources and services" is a separate toggle** from IP rules. It grants access to Azure services (like Azure Functions or Stream Analytics) without listing their IPs — useful, but coarse.
-3. **The `0.0.0.0 - 255.255.255.255` shortcut "allow all from Azure"** lets every Azure tenant in every subscription reach your cluster. It is essentially "no firewall." Don't use it for production.
+Operational gotchas to bake into runbooks:
+
+1. **Firewall changes propagate in up to ~15 minutes** — during that window the firewall can behave inconsistently. Don't troubleshoot "connection refused" for the first 15 minutes after a change.
+2. **"Allow public access from Azure resources and services" is a separate toggle** from IP rules. It grants access to Azure services (like Azure Functions or Stream Analytics) without listing their IPs — but ⚠️ **it admits connections from *any* Azure service in *any* customer subscription**, not just yours. Identity (Entra ID + database role) is the only remaining gate.
+3. **The `0.0.0.0 - 255.255.255.255` shortcut** is essentially "no firewall." Don't use it for production.
+4. **The portal's "current client IP" detection can be wrong** — corporate proxies, VPNs, or IPv6 transition can make the portal-detected IP differ from your actual egress. Verify with a "what is my IP" service before saving.
 
 ## Incorrect
 
@@ -47,7 +50,8 @@ Easiest path is the Azure portal:
 
 1. Open the cluster → **Networking**.
 2. Select **+ Add current client IP address**.
-3. **Save**.
+3. **Verify** the detected IP matches your real egress (corporate proxies and VPN concentrators can shift it).
+4. **Save**.
 
 Remove the rule when you're done — don't leave temporary IPs in place.
 
@@ -56,10 +60,10 @@ Remove the rule when you're done — don't leave temporary IPs in place.
 For workloads like Azure Functions or Stream Analytics where listing the source IPs isn't practical:
 
 1. Cluster → **Networking**.
-2. Toggle **Allow public access from Azure resources and services** on.
+2. Toggle **Allow public access from Azure resources and services** (a.k.a. **Allow Azure services and resources to access this cluster**) on.
 3. **Save**.
 
-This is broader than a specific IP rule but narrower than `0.0.0.0/0` — only traffic that originates from Azure infrastructure is permitted. Combine it with strong **identity** (Entra ID + managed identity; see [security-entra-rbac](security-entra-rbac.md)) so a misuse of this toggle still can't reach data without a registered principal.
+> ⚠️ This toggle admits traffic from **any Azure service in any customer subscription** — not just yours. The network gate becomes coarse; **identity** (Entra ID + database role) is the only remaining gate that distinguishes your workload from someone else's. Pair this toggle with managed-identity auth and tight database roles (see [security-entra-rbac](security-entra-rbac.md), [security-database-roles](security-database-roles.md)). For sensitive workloads, prefer Private Endpoint instead.
 
 ### 3. Allow specific CIDR ranges
 
@@ -85,6 +89,17 @@ The portal exposes a shortcut to allow all IPs *via Azure infrastructure*. The c
 
 If the workload runs in Azure and doesn't need public access, the right answer is to disable public network access entirely and use Private Endpoint instead. Firewall rules are best thought of as a stopgap for hybrid or partner-access scenarios. See [security-private-endpoint](security-private-endpoint.md).
 
+### 7. Disable public access entirely
+
+To fully close the public path on an existing cluster:
+
+1. Cluster → **Networking**.
+2. **Remove every firewall rule** in the Public access section.
+3. **Clear** the **Allow Azure services and resources to access this cluster** checkbox.
+4. **Save**.
+
+With no rules and the Azure-services toggle off, the public path is effectively closed — the cluster reverts to the default locked-down posture and only Private Endpoint (if configured) provides reachability. Confirm by attempting a connection from a previously-allowed public source after the ~15-minute propagation window — it should fail.
+
 ## Operational checklist
 
 | When | Do |
@@ -97,4 +112,5 @@ If the workload runs in Azure and doesn't need public access, the right answer i
 ## References
 
 - [Configure firewall — Azure DocumentDB](https://learn.microsoft.com/azure/documentdb/how-to-configure-firewall)
-- Related: [security-private-endpoint](security-private-endpoint.md), [security-entra-rbac](security-entra-rbac.md)
+- [Enable and manage public access — Azure DocumentDB](https://learn.microsoft.com/azure/documentdb/how-to-public-access)
+- Related: [security-private-endpoint](security-private-endpoint.md), [security-entra-rbac](security-entra-rbac.md), [security-database-roles](security-database-roles.md)
