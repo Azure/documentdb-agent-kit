@@ -8,9 +8,13 @@ Enabling **high availability (HA)** on an Azure DocumentDB cluster provisions a 
 
 Key guarantees:
 
-- **Synchronous replication** between primary and standby — every write is persisted on both shards before the client gets an ack, so failover is **lossless**.
-- **Automatic failover** — the service runs continuous health checks and heartbeats. On primary failure, the standby is promoted and a fresh standby is rebuilt automatically. On standby failure, a new standby is auto-provisioned from the primary.
+- **Synchronous replication** between primary and standby — every write is persisted on both shards before the client gets an ack, so failover is **lossless**. With HA enabled, each shard ends up with **6 data replicas** (3 LRS replicas under the primary + 3 LRS replicas under the standby), all kept in sync.
+- **Automatic failover** — the service runs continuous health checks and heartbeats. On primary failure, the standby is promoted and a fresh standby is rebuilt automatically. On standby failure, a new standby is auto-provisioned from the primary. In-flight writes during failover are retried inside the service for continuity.
 - **Zone redundancy** — in AZ-enabled regions, the standby is placed in a **different availability zone** from the primary, protecting against datacenter-level events. HA is the **prerequisite** for availability-zone placement; without HA, the cluster runs on locally-redundant storage (LRS) inside a single zone.
+- **All regions supported** — HA is available in every Azure region that supports Azure DocumentDB. In regions without AZ support, `ZoneRedundantPreferred` automatically falls back to `SameZone` placement.
+- **Single endpoint abstraction** — applications connect through one connection string regardless of how many shards the cluster has; the multi-shard topology is fully transparent to the driver.
+
+Storage integrity is enforced by Azure Storage itself: data is protected with **cyclic redundancy checks (CRCs)**, network traffic is protected with checksums, and any detected corruption is repaired from redundant copies — without operator intervention.
 
 Without HA, each shard relies on LRS — three synchronous Azure Storage replicas inside one zone. Single-replica failures are auto-healed transparently by Azure Storage, but a zone or region failure risks **downtime and possible data loss**.
 
@@ -93,5 +97,6 @@ az rest --method PATCH \
 
 - [HA & cross-region replication best practices](https://learn.microsoft.com/azure/documentdb/high-availability-replication-best-practices)
 - [Reliability in Azure DocumentDB](https://learn.microsoft.com/azure/reliability/reliability-documentdb) — availability-zone behavior, LRS without HA, synchronous replication guarantee
+- [Availability and disaster recovery in Azure DocumentDB — behind the scenes](https://learn.microsoft.com/azure/documentdb/availability-disaster-recovery-under-hood) — cluster anatomy, 6-replica HA layout, CRC + network checksums, single-endpoint abstraction
 - [High availability overview](https://learn.microsoft.com/azure/documentdb/high-availability)
 - [Scaling and configuring an Azure DocumentDB cluster — enable/disable HA](https://learn.microsoft.com/azure/documentdb/how-to-scale-cluster#enable-or-disable-high-availability)

@@ -11,7 +11,13 @@ Azure DocumentDB supports **active-passive cross-region replication**: one clust
 Two things to internalize before designing for cross-region:
 
 - **Replication is asynchronous.** Replica reads are eventually consistent — writes acknowledged on the primary may not yet be visible on the replica. Applications that need read-your-own-writes must route those reads to the primary.
+- **Regional promotion has a non-zero RPO.** Because replication is asynchronous, recent writes that haven't yet been delivered to the replica are **lost** when the replica is promoted during a regional outage. Replication lag depends on the primary's write intensity and overall cluster load — monitor lag and size both clusters to keep it bounded.
 - **Failover is *not* automatic across regions.** Per the Azure shared-responsibility model, you (the customer) own the DR plan. Region failover requires a **customer-triggered promotion** of the replica. In-region HA failover is automatic; cross-region promotion is not.
+
+A canonical read-routing pattern:
+
+- **OLTP / transactional reads + all writes** → primary cluster (strong consistency).
+- **OLAP / analytical / reporting reads** → replica cluster (eventual consistency, but offloads the primary).
 
 ## Incorrect
 
@@ -165,6 +171,16 @@ See [Replica cluster promotion](https://learn.microsoft.com/azure/documentdb/cro
 
 The replica is a full first-class cluster resource and has **its own Metrics** for resource consumption (CPU, memory, IOPS, storage, connections). Replica metrics are **not** aggregated into the primary's metrics — monitor both clusters independently and set alerts on each. See the `documentdb-monitoring` skill for the metric catalog and alerting patterns.
 
+### Authentication, identity, and billing
+
+Authentication and identity are managed differently from networking — note where each lives:
+
+- **Admin account is inherited.** The replica reuses the primary's administrator credentials at creation time. You do not (and cannot) re-supply admin credentials on the replica.
+- **Users and managed identities are managed on the primary.** Application user accounts and managed-identity assignments are **always created on the primary** and synchronized to the replica automatically. Connect to either cluster with the same credentials. Do not try to create users on the replica.
+- **Authentication *methods* are managed per-cluster.** Native DocumentDB authentication and Microsoft Entra authentication can be toggled independently on the primary and the replica.
+- **Native-auth gotcha at replica creation.** If native DocumentDB authentication is **disabled on the primary at the moment the replica is created**, you **cannot enable native auth on the replica later** without first promoting it. If you anticipate ever needing native auth on the replica (e.g. for a tool that doesn't support Entra), turn it on **before** provisioning the replica.
+- **Billing.** A replica is a full first-class cluster — you pay for its provisioned vCores and GiB/month of storage on the same pricing structure as a standalone cluster, at the **replica region's** Azure prices. Plan replica region selection with cost in mind (some regions are materially more expensive than others).
+
 ### Replica networking, encryption, and lifecycle
 
 These are independent per cluster — set them on the replica too, not just the primary:
@@ -179,6 +195,7 @@ These are independent per cluster — set them on the replica too, not just the 
 
 - [HA & cross-region replication best practices](https://learn.microsoft.com/azure/documentdb/high-availability-replication-best-practices)
 - [Reliability in Azure DocumentDB](https://learn.microsoft.com/azure/reliability/reliability-documentdb) — shared-responsibility DR model, manual cross-region promotion
+- [Availability and disaster recovery in Azure DocumentDB — behind the scenes](https://learn.microsoft.com/azure/documentdb/availability-disaster-recovery-under-hood) — asynchronous replication mechanics, replication-lag drivers, RPO honesty
 - [Cross-region replication](https://learn.microsoft.com/azure/documentdb/cross-region-replication)
 - [Manage cluster replication](https://learn.microsoft.com/azure/documentdb/how-to-cluster-replica)
 - [Troubleshoot cluster replication](https://learn.microsoft.com/azure/documentdb/troubleshoot-replication) — replica networking gotchas, per-cluster metrics, failback semantics

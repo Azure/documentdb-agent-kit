@@ -16,9 +16,22 @@ Azure DocumentDB's resiliency model has three layers. Pick the right combination
 
 ## Replication model at a glance
 
-- **Primary ↔ standby shard (in-region):** synchronous — zero data loss on automatic failover.
-- **Primary cluster ↔ cross-region replica:** asynchronous — design for eventual consistency on the replica; writes still go to the primary until you explicitly promote the replica.
-- **Without HA:** each shard uses locally-redundant storage (LRS) with 3 synchronous Azure Storage replicas. Single-replica failures are auto-healed by Azure Storage, but a **zone or region failure can cause downtime and possible data loss**. HA is also a prerequisite for availability-zone placement.
+- **Primary ↔ standby shard (in-region):** synchronous — every write commits to both before the client gets an ack, so failover is **lossless** and reads on the standby (after promotion) are strongly consistent. With HA on, each shard has **6 replicas** in total: 3 LRS replicas under the primary shard + 3 LRS replicas under the standby shard. In AZ-enabled regions the primary and standby sit in **different availability zones**.
+- **Primary cluster ↔ cross-region replica:** asynchronous — design for eventual consistency on the replica. Some writes acknowledged on the primary **may not yet** be on the replica, so regional promotion has a **non-zero RPO** (recent writes can be lost). Replication lag scales with the primary's write intensity and the load on both clusters.
+- **Without HA:** each shard uses locally-redundant storage (LRS) with 3 synchronous Azure Storage replicas. Single-replica failures are auto-healed by Azure Storage (CRC checks + network checksums protect against silent corruption), but a **zone or region failure can cause downtime and possible data loss**. HA is also a prerequisite for availability-zone placement.
+
+> Applications connect to a cluster through a **single connection string and endpoint** regardless of shard count. The multi-shard topology is fully abstracted — a 16-shard cluster looks like one MongoDB endpoint to the driver.
+
+## Feature comparison
+
+How HA and cross-region replicas protect different failure modes:
+
+| Failure scenario | Feature | No data loss (RPO = 0) | Survives region-wide outage | Automatic failover | Connection string preserved |
+|---|---|:---:|:---:|:---:|:---:|
+| Physical shard / zone failure | In-region HA | ✅ (synchronous) | ❌ | ✅ | ✅ |
+| Regional outage | Cross-region replica | ❌ (asynchronous; RPO > 0) | ✅ | ❌ (customer-triggered) | ✅ ¹ |
+
+¹ Only when the application uses the **Global read-write** connection string (`<cluster>.global.mongocluster.cosmos.azure.com`). The cluster-specific / "self" connection string becomes read-only after promotion.
 
 ## Best-practice decision matrix
 
@@ -45,3 +58,4 @@ Azure DocumentDB's resiliency model has three layers. Pick the right combination
 
 - [Best practices for HA and cross-region replication in Azure DocumentDB](https://learn.microsoft.com/azure/documentdb/high-availability-replication-best-practices)
 - [Reliability in Azure DocumentDB](https://learn.microsoft.com/azure/reliability/reliability-documentdb)
+- [Availability and disaster recovery in Azure DocumentDB — behind the scenes](https://learn.microsoft.com/azure/documentdb/availability-disaster-recovery-under-hood) — cluster anatomy, 6-replica HA layout, replication-lag drivers
