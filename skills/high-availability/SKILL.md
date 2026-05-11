@@ -11,7 +11,7 @@ Azure DocumentDB's resiliency model has three layers. Pick the right combination
 | Layer | What it protects against | SLA contribution | Automatic? |
 |---|---|---|---|
 | **In-region HA** (standby shard per primary, synchronous replication) | Node / zone failures within a region | 99.99 % | ✅ Failover is automatic; connection string is unchanged |
-| **Cross-region replica** (active-passive, asynchronous) | Regional outage; provides read scale-out | + 0.005 % → **99.995 %** combined | ❌ Promotion is **customer-triggered** (shared-responsibility DR) |
+| **Cross-region replica** (active-passive, asynchronous) | Regional outage; provides read scale-out | + 0.005 % → **99.995 %** combined | ❌ Promotion is **customer-triggered** (shared-responsibility DR); HA must be re-enabled on the promoted cluster |
 | **Automatic backups** (35 d active / 7 d deleted clusters) | Accidental deletion or corruption | — | ✅ Continuous, no perf impact |
 
 ## Replication model at a glance
@@ -29,6 +29,7 @@ Azure DocumentDB's resiliency model has three layers. Pick the right combination
 | Need 99.995 % SLA | Enable HA **and** create a cross-region replica |
 | Automatic failover from node/zone failure | Enable HA |
 | Cross-region disaster recovery | Create a replica cluster |
+| Read scale-out within a single region (analytics / reporting offload) | Create a **same-region** replica (no DR benefit) |
 | Read scale-out across regions | Create a replica cluster |
 | Availability-zone placement required | Enable HA (HA is required for AZ support) |
 | Non-production / dev-test cluster | Disable HA to reduce cost |
@@ -37,7 +38,7 @@ Azure DocumentDB's resiliency model has three layers. Pick the right combination
 ## Rules
 
 - [ha-enable-for-production](ha-enable-for-production.md) — Enable HA on all production clusters for the 99.99 % SLA, automatic failover, zone redundancy, and zero-data-loss synchronous replication.
-- [ha-cross-region-replica](ha-cross-region-replica.md) — Add an active-passive cross-region replica for DR and read scale-out; HA + replica = 99.995 % SLA. Plan region selection for write latency and design replica reads for eventual consistency.
+- [ha-cross-region-replica](ha-cross-region-replica.md) — Add an active-passive replica (cross-region for DR + read scale-out, same-region for pure read scale-out); HA + cross-region replica = 99.995 % SLA. Includes the post-promotion runbook (re-enable HA, update connection strings, restore the replica).
 - [ha-backup-retention](ha-backup-retention.md) — Automatic backups are taken continuously and retained for **35 days** on active clusters and **7 days** on deleted clusters. Use them to recover from accidental deletes or modifications.
 
 ## References
