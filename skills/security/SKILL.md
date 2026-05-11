@@ -45,4 +45,5 @@ A principal needs both layers for end-to-end access, and they are managed indepe
 - [security-admin-password-and-identity-separation](security-admin-password-and-identity-separation.md) — Strong admin password policy (≥8 chars + complexity); use distinct Azure identities for control-plane vs data-plane to bound blast radius.
 - [security-token-lifetime-revocation](security-token-lifetime-revocation.md) — Entra access tokens are valid up to ~90 minutes from issuance even after the principal is disabled; revoke data-plane access immediately by deleting the `mongoClusters/users/<principal-id>` resource.
 - [security-cmk-encryption](security-cmk-encryption.md) — Use customer-managed keys (CMK) for data-at-rest encryption on regulated workloads.
+- [security-cmk-troubleshooting](security-cmk-troubleshooting.md) — CMK operational runbook: causes of `Inaccessible` cluster state, ~60-minute revalidation window, managed-identity / key / vault recovery procedures, and provisioning-failure triage.
 
