@@ -132,7 +132,7 @@ client = MongoClient(
   f"mongodb+srv://{clusterName}.global.mongocluster.cosmos.azure.com/",
   connectTimeoutMS=120000,
   tls=True,
-  retryWrites=True,
+  retryWrites=False,
   authMechanism="MONGODB-OIDC",
   authMechanismProperties=authProperties,
 )
@@ -155,7 +155,7 @@ const client = new MongoClient(
   {
     connectTimeoutMS: 120000,
     tls: true,
-    retryWrites: true,
+    retryWrites: false,
     authMechanism: 'MONGODB-OIDC',
     authMechanismProperties: {
       OIDC_CALLBACK: (params) => callback(params, credential),
