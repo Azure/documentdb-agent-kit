@@ -6,7 +6,7 @@
 
 Azure DocumentDB takes **automatic backups** of every cluster continuously and in the background. Backups are stored separately from the source data in a managed storage service, and the process has **no impact on database performance or availability**. Backups are your safety net for accidental deletes, accidental modifications, and application-level corruption — failures that HA and cross-region replicas do **not** protect against (because both replicate the bad change).
 
-Retention is automatic and not customer-configurable:
+Retention is automatic, service-defined, and not customer-configurable:
 
 | Cluster state | Backup retention |
 |---|---|
@@ -16,6 +16,7 @@ Retention is automatic and not customer-configurable:
 Implications:
 
 - **You have 7 days** after deleting a cluster to restore it. After that the backups are gone.
+- The deleted-cluster retention window is a **hard platform limit**; you can't extend it.
 - HA, cross-region replicas, and backups solve **different** problems. Don't substitute one for another:
   - HA → node/zone failure inside one region.
   - Cross-region replica → regional outage.
