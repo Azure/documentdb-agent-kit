@@ -115,7 +115,7 @@ resource "azurerm_role_definition" "control_plane" {
   description = "Can perform all Azure role-based access control actions for Azure DocumentDB clusters."
 
   permissions {
-    actions = [ "Microsoft.DocumentDb/mongoClusters/*" ]
+    actions = [ "Microsoft.DocumentDB/mongoClusters/*" ]
   }
 
   assignable_scopes = [ data.azurerm_resource_group.existing.id ]
