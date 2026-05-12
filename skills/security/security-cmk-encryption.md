@@ -13,7 +13,7 @@ Azure DocumentDB offers two encryption modes:
 | **Service-managed keys (SMK)** — default | Microsoft | You want zero key-management overhead and have no regulatory requirement to hold the key yourself. |
 | **Customer-managed keys (CMK)** | You, via your Azure Key Vault | Regulated workload (finance, healthcare, government), separation-of-duties policy, or you need to be able to **revoke** the key to make a database inaccessible on demand. |
 
-Under the hood, both modes rely on [server-side encryption of Azure Storage](https://learn.microsoft.com/azure/virtual-machines/disk-encryption). In CMK mode, **Azure Storage wraps the root Data Encryption Key (DEK) with your key in Key Vault** — your key encrypts a key, not the data directly. Data stays encrypted at all times; switching the wrapping key has no effect on the ciphertext.
+Under the hood, both modes rely on [server-side encryption of Azure Storage](https://learn.microsoft.com/azure/storage/common/storage-service-encryption). In CMK mode, **Azure Storage wraps the root Data Encryption Key (DEK) with your key in Key Vault** — your key encrypts a key, not the data directly. Data stays encrypted at all times; switching the wrapping key has no effect on the ciphertext.
 
 ### The non-negotiables
 
