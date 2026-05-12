@@ -45,9 +45,9 @@ Enable HA on every production and downtime-sensitive cluster:
 
 | Value | Behavior |
 |---|---|
-| `Disabled` | No standby. Single-zone LRS only. No 99.99 % SLA, no AZ placement, no automatic failover. Use only for dev/test. |
+| `Disabled` | No standby. Single-zone LRS only. No 99.99% SLA, no AZ placement, no automatic failover. Use only for dev/test. |
 | `SameZone` | Standby is provisioned in the **same** availability zone as the primary. Survives node failures but not zone outages. |
-| `ZoneRedundantPreferred` | **Recommended.** Standby is placed in a different AZ when supported, falling back to `SameZone` in regions without AZ support. Survives node and zone failures and unlocks the 99.99 % SLA. |
+| `ZoneRedundantPreferred` | **Recommended.** Standby is placed in a different AZ when supported, falling back to `SameZone` in regions without AZ support. Survives node and zone failures and unlocks the 99.99% SLA. |
 
 ### Bicep (full template: `skills/azure-deployment/references/bicep-cluster-template.md`)
 
