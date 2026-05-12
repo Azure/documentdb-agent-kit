@@ -18,13 +18,14 @@ why it matters → incorrect example → correct example → references.
 | Folder | Prefix | Focus |
 |---|---|---|
 | [`data-modeling/`](../skills/data-modeling/) | `model-` | Embed vs reference, 16 MB limit, denormalization, schema versioning |
-| [`cluster-sharding/`](../skills/cluster-sharding/) | `cluster-` | M-tier selection, vertical-first scaling, shard-key design |
+| [`sharding/`](../skills/sharding/) | `sharding-` | When to shard vs stay single-shard, shard-key selection (read-heavy vs write-heavy), logical/physical shard mental model, scale-up vs scale-out, hot-partition diagnosis, `sh.shardCollection` / `sh.reshardCollection`, 4 TB logical-shard budget |
 | [`query-optimization/`](../skills/query-optimization/) | `query-` | `explain("executionStats")`, avoiding `COLLSCAN` |
 | [`indexing/`](../skills/indexing/) | `index-` | Index-type selection (single / compound-ESR / multikey / wildcard / hashed / 2dsphere / TTL), query-pattern → index-shape cookbook, index budget, safe `hideIndex` → `dropIndex` lifecycle |
 | [`driver/`](../skills/driver/) | `driver-` | MongoDB driver/SDK usage (singleton client, pooling) |
 | [`vector-search/`](../skills/vector-search/) | `vector-` | `cosmosSearch` with DiskANN / HNSW / IVF, PQ, fp16 |
 | [`full-text-search/`](../skills/full-text-search/) | `fts-` | `createSearchIndexes` + `$search` for BM25 keyword / phrase / fuzzy; custom analyzers (keyword + edgeGram) for prefix matching on IDs; `pathHierarchy` for hierarchical identifiers; multi-field search indexes; hybrid (BM25 + vector) with RRF |
-| [`high-availability/`](../skills/high-availability/) | `ha-` | Enabling HA, cross-region replica, documented SLAs |
+| [`high-availability/`](../skills/high-availability/) | `ha-` | Enabling HA + zone redundancy, cross-region replica, automatic backup retention, documented SLAs |
+| [`storage/`](../skills/storage/) | `storage-` | Premium SSD v2 high-performance storage: compute-tier-gated IOPS/bandwidth caps, v1 vs v2 selection, limitations (no CMK, migration paths), disk-hydration sequencing |
 | [`security/`](../skills/security/) | `security-` | TLS, Private Endpoint, IP firewall rules (CIDR + propagation), Azure RBAC actions for `mongoClusters/*`, Microsoft Entra ID + OIDC authentication, MongoDB database roles for data-plane access (incl. `readWriteAnyDatabase`+`clusterAdmin` pairing), token-lifetime / revocation pattern, CMK |
 | [`monitoring/`](../skills/monitoring/) | `monitoring-` | Slow query logs, metrics & alerts |
 | [`local-deployment/`](../skills/local-deployment/) | `local-` | Docker image choice, Compose, TLS, env-driven config, dev/prod parity |

@@ -56,6 +56,25 @@ npx skills add Azure/documentdb-agent-kit
 
 This drops the rule docs into your agent's skill directory but **does not** install the MCP server. Use one of the per-agent plugin commands above if you want the DB tools too.
 
+## Updating the kit
+
+New skills, rule fixes, and MCP-server updates are released on `main`. Installs do **not** auto-update — each install path has its own refresh command. Run these when you want to pull in new features or fixes:
+
+| Install path | Update command |
+|---|---|
+| Claude Code | `/plugin update documentdb@azure-documentdb` |
+| Cursor | re-run `/add-plugin azure/documentdb-agent-kit` |
+| Codex | `codex plugin update documentdb` |
+| Gemini CLI | `gemini extensions update documentdb-agent-kit` |
+| GitHub Copilot CLI | `/plugin update https://github.com/Azure/documentdb-agent-kit.git` (or uninstall + reinstall) |
+| Skills only (skills.sh CLI) | re-run `npx skills add Azure/documentdb-agent-kit` |
+
+> **Skills CLI note:** `npx skills update` exists but is unreliable for GitHub-sourced skills on the current `skills` CLI release. **Re-running `npx skills add Azure/documentdb-agent-kit` is the recommended refresh path** — it re-fetches the latest `main` and overlays the updated rule files. Add `--all` if you originally installed with `--all`.
+
+The MCP server is fetched via `npx -y documentdb-mcp-server` each time the agent launches the server, so MCP-server updates land automatically on the next agent restart (subject to npm cache). Skill files are snapshotted at install time and only refresh when you run one of the commands above.
+
+To see what's changed between releases, check [`CHANGELOG.md`](CHANGELOG.md).
+
 ## Configuration
 
 The MCP server is administrator-controlled: tools never accept runtime connection strings. Set `DOCUMENTDB_CONNECTION_PROFILES` in your shell before launching the agent.

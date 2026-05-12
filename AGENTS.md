@@ -61,16 +61,18 @@ These skills walk the user (or another agent) through a task end-to-end.
 
 This kit is distributed as an installable plugin/extension for every major coding agent. The plugin bundles the [DocumentDB MCP server](https://github.com/microsoft/documentdb-mcp) (`documentdb-mcp-server` on npm) together with the `skills/` tree.
 
-| Agent | Install command | Manifest |
-|---|---|---|
-| Claude Code | `/plugin marketplace add Azure/documentdb-agent-kit` then `/plugin install documentdb` | [`.claude-plugin/`](.claude-plugin/) |
-| Cursor | `/add-plugin azure/documentdb-agent-kit` | [`.cursor-plugin/`](.cursor-plugin/) |
-| Codex | `codex plugin marketplace add azure/documentdb-agent-kit` | [`.codex-plugin/`](.codex-plugin/) + [`.agents/plugins/marketplace.json`](.agents/plugins/marketplace.json) |
-| Gemini CLI | `gemini extensions install https://github.com/Azure/documentdb-agent-kit` | [`gemini-extension.json`](gemini-extension.json) + [`GEMINI.md`](GEMINI.md) |
-| GitHub Copilot CLI | `/plugin install https://github.com/Azure/documentdb-agent-kit.git` | this `AGENTS.md` + [`mcp.json`](mcp.json) |
-| Skills only (any agent) | `npx skills add Azure/documentdb-agent-kit` | walks `skills/` directly (no MCP server) |
+| Agent | Install command | Update command | Manifest |
+|---|---|---|---|
+| Claude Code | `/plugin marketplace add Azure/documentdb-agent-kit` then `/plugin install documentdb` | `/plugin update documentdb@azure-documentdb` | [`.claude-plugin/`](.claude-plugin/) |
+| Cursor | `/add-plugin azure/documentdb-agent-kit` | re-run `/add-plugin azure/documentdb-agent-kit` | [`.cursor-plugin/`](.cursor-plugin/) |
+| Codex | `codex plugin marketplace add azure/documentdb-agent-kit` | `codex plugin update documentdb` | [`.codex-plugin/`](.codex-plugin/) + [`.agents/plugins/marketplace.json`](.agents/plugins/marketplace.json) |
+| Gemini CLI | `gemini extensions install https://github.com/Azure/documentdb-agent-kit` | `gemini extensions update documentdb-agent-kit` | [`gemini-extension.json`](gemini-extension.json) + [`GEMINI.md`](GEMINI.md) |
+| GitHub Copilot CLI | `/plugin install https://github.com/Azure/documentdb-agent-kit.git` | `/plugin update https://github.com/Azure/documentdb-agent-kit.git` | this `AGENTS.md` + [`mcp.json`](mcp.json) |
+| Skills only (any agent) | `npx skills add Azure/documentdb-agent-kit` | re-run `npx skills add Azure/documentdb-agent-kit` (preferred) or `npx skills update` | walks `skills/` directly (no MCP server) |
 
 All paths share the same `skills/` tree. Claude / Cursor / Codex / Copilot also share the root [`mcp.json`](mcp.json); Gemini inlines the same MCP config in its own manifest.
+
+Skills are snapshotted at install time and do **not** auto-update — re-run the relevant update command above to pull new skills or fixes from `main`. The bundled MCP server runs via `npx -y documentdb-mcp-server` and refreshes on every agent restart (subject to npm cache).
 
 See [`README.md`](README.md) for the full per-tool install + configuration walkthrough and [`docs/SKILLS.md`](docs/SKILLS.md) for the capability catalog.
 
