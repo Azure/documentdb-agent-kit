@@ -80,7 +80,7 @@ resource definition 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
     permissions: [
       {
         actions: [
-          'Microsoft.DocumentDb/mongoClusters/*'
+          'Microsoft.DocumentDB/mongoClusters/*'
         ]
       }
     ]

@@ -175,7 +175,7 @@ Test all three runbooks in a non-production environment before relying on them.
 ## References
 
 - [Encryption at rest in Azure DocumentDB](https://learn.microsoft.com/azure/documentdb/database-encryption-at-rest)
-- [Server-side encryption of Azure Storage](https://learn.microsoft.com/azure/virtual-machines/disk-encryption)
+- [Server-side encryption of Azure Storage](https://learn.microsoft.com/azure/storage/common/storage-service-encryption)
 - [Azure Key Vault basic concepts](https://learn.microsoft.com/azure/key-vault/general/basic-concepts)
 - [Key Vault RBAC guide](https://learn.microsoft.com/azure/key-vault/general/rbac-guide)
 - [Key Vault soft-delete](https://learn.microsoft.com/azure/key-vault/general/soft-delete-overview)

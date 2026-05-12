@@ -1,6 +1,6 @@
 ---
 name: documentdb-security
-description: Security best practices for Azure DocumentDB — TLS enforcement, Private Endpoint / firewall configuration, two-level access control (Azure RBAC on the `mongoCluster` resource + Microsoft Entra ID OIDC authentication with MongoDB database roles for data-plane access), token-lifetime / revocation handling, and customer-managed keys (CMK) for encryption at rest. Use when reviewing production security posture, configuring networking, setting up authentication / authorization, granting per-app least-privilege access, revoking compromised tokens, or preparing for compliance audits.
+description: Security best practices for Azure DocumentDB — TLS enforcement, Private Endpoint / firewall configuration, two-level access control (Azure RBAC on the `mongoClusters` resource + Microsoft Entra ID OIDC authentication with MongoDB database roles for data-plane access), token-lifetime / revocation handling, and customer-managed keys (CMK) for encryption at rest. Use when reviewing production security posture, configuring networking, setting up authentication / authorization, granting per-app least-privilege access, revoking compromised tokens, or preparing for compliance audits.
 license: MIT
 ---
 
@@ -20,7 +20,7 @@ A production cluster should have all eight layers in place:
 | **Control-plane authorization** | Subscription-level Azure RBAC | Custom role scoped to `Microsoft.DocumentDB/mongoClusters/*` at resource-group scope | [`security-azure-rbac-actions`](security-azure-rbac-actions.md) |
 | **Data-plane authorization** | One admin user | Per-database least-privilege roles; admin identity ≠ runtime identity | [`security-database-roles`](security-database-roles.md), [`security-admin-password-and-identity-separation`](security-admin-password-and-identity-separation.md) |
 | **Encryption at rest** | Service-managed AES-256 | CMK for regulated workloads (Premium SSD v1 only — see `storage/`) | [`security-cmk-encryption`](security-cmk-encryption.md) |
-| **Backups** | Automated, 35-day retention | Restore drills; understand 7-day post-deletion window | [`high-availability/ha-backup-retention`](../high-availability/ha-backup-retention.md) |
+| **Backups** | Automated, 35-day retention | Restore drills; understand 7-day post-deletion window | [Reliability in Azure DocumentDB](https://learn.microsoft.com/azure/reliability/reliability-documentdb) |
 | **Incident response** | Audit + activity logs available | Token revocation playbook ready; monitoring alerts wired up | [`security-token-lifetime-revocation`](security-token-lifetime-revocation.md), [`monitoring/`](../monitoring/) |
 
 ## Two-level access model

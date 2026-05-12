@@ -99,7 +99,7 @@ For role-shape details (`readWriteAnyDatabase` + `clusterAdmin` must be granted 
 Use the global SRV host so the connection automatically follows promotion in multi-cluster setups:
 
 ```
-mongodb+srv://<client-id>@<cluster-name>.global.mongocluster.cosmos.azure.com/?tls=true&authMechanism=MONGODB-OIDC&retrywrites=false&maxIdleTimeMS=120000
+mongodb+srv://<cluster-name>.global.mongocluster.cosmos.azure.com/?tls=true&authMechanism=MONGODB-OIDC&retrywrites=false&maxIdleTimeMS=120000
 ```
 
 Required driver settings:
@@ -145,7 +145,7 @@ const callback = async (params: OIDCCallbackParams, credential: TokenCredential)
   const tokenResponse = await credential.getToken(['https://ossrdbms-aad.database.windows.net/.default']);
   return {
     accessToken: tokenResponse?.token || '',
-    expiresInSeconds: (tokenResponse?.expiresOnTimestamp || 0) - Math.floor(Date.now() / 1000),
+    expiresInSeconds: Math.max(0, Math.floor(((tokenResponse?.expiresOnTimestamp ?? 0) - Date.now()) / 1000)),
   };
 };
 
@@ -169,14 +169,22 @@ const client = new MongoClient(
 
 ```csharp
 DefaultAzureCredential credential = new();
-AzureIdentityTokenHandler tokenHandler = new(credential, tenantId);
+
+Func<OidcCallbackParameters, CancellationToken, Task<OidcAccessToken>> tokenCallback =
+    async (_, ct) =>
+    {
+        AccessToken token = await credential.GetTokenAsync(
+            new TokenRequestContext(new[] { "https://ossrdbms-aad.database.windows.net/.default" }),
+            ct);
+        return new OidcAccessToken(token.Token, token.ExpiresOn - DateTimeOffset.UtcNow);
+    };
 
 MongoUrl url = MongoUrl.Create($"mongodb+srv://{clusterName}.global.mongocluster.cosmos.azure.com/");
 MongoClientSettings settings = MongoClientSettings.FromUrl(url);
 settings.UseTls = true;
 settings.RetryWrites = false;
 settings.MaxConnectionIdleTime = TimeSpan.FromMinutes(2);
-settings.Credential = MongoCredential.CreateOidcCredential(tokenHandler);
+settings.Credential = MongoCredential.CreateOidcCredential(tokenCallback);
 settings.Freeze();
 
 MongoClient client = new(settings);

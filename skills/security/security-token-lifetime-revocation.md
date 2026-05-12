@@ -4,13 +4,17 @@
 
 ## Why it matters
 
-When you authenticate to Azure DocumentDB with Microsoft Entra ID, the MongoDB driver presents an **OIDC access token** issued by Entra. That token has a finite lifetime — typically **up to ~90 minutes from issuance** — and remains valid for that full window even if:
+When you authenticate to Azure DocumentDB with Microsoft Entra ID, the MongoDB driver presents an **OIDC access token** issued by Entra. That token has a finite lifetime — typically **up to ~90 minutes from issuance** — and remains **cryptographically valid** (signature checks pass, `exp` claim not yet reached) for that full window even if:
 
 - The Entra principal is **disabled** or **deleted** in the tenant.
 - The associated **refresh token is revoked**.
-- The cluster user resource (`mongoClusters/users/<principal-id>`) is **deleted**.
 
-In other words, **the access-token lifetime is the maximum attack window if a token is compromised.** A malicious actor with a valid token can keep using it until expiry. This is a fundamental property of token-based auth — not specific to DocumentDB — but the response pattern is specific.
+**Cryptographic validity ≠ authorization.** Two independent gates have to clear for an operation to succeed:
+
+1. **Token validity** (Entra side) — the JWT signature verifies and isn't expired. Entra-side actions above don't change this until expiry.
+2. **Cluster authorization** (DocumentDB side) — the principal in the token must still be registered as a user on the cluster (`mongoClusters/users/<principal-id>`).
+
+So **deleting the cluster user resource immediately revokes authorization** even if the token is still cryptographically valid — that's the operative control during incident response. Conversely, leaving the user resource in place but only revoking the principal in Entra leaves an attacker with up to ~90 minutes of usable token. **The access-token lifetime is the maximum attack window if you rely only on Entra-side revocation.**
 
 ## Incorrect
 
