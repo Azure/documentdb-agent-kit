@@ -37,7 +37,7 @@ Pair HA + cross-region replica for production-critical workloads:
 
 1. Enable HA on the primary cluster (see `ha-enable-for-production`).
 2. Create a replica cluster (`createMode: 'GeoReplica'`) in a paired or geographically near region. The replica reuses the primary's admin credentials, databases, collections, and documents — only the cluster name and region differ.
-3. Enable HA on the replica too — required for the combined 99.995 % SLA and for AZ placement after promotion.
+3. Enable HA on the replica too — required for the combined 99.995% SLA and for AZ placement after promotion.
 4. Route latency-sensitive reads in that region to the replica's connection string (read-only).
 5. Document and **periodically test** a promotion runbook for DR (see the [Promotion (DR failover) — runbook](#promotion-dr-failover--runbook) section below).
 
