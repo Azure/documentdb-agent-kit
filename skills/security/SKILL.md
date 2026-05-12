@@ -10,7 +10,7 @@ Core controls: TLS on the wire, network isolation with Private Endpoint, **two-l
 
 ## Defense-in-depth checklist
 
-A production cluster should have all six layers in place:
+A production cluster should have all eight layers in place:
 
 | Layer | Default | Production recommendation | Rule |
 |---|---|---|---|
