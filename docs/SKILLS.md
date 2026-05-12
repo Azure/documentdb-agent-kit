@@ -18,7 +18,7 @@ why it matters → incorrect example → correct example → references.
 | Folder | Prefix | Focus |
 |---|---|---|
 | [`data-modeling/`](../skills/data-modeling/) | `model-` | Embed vs reference, 16 MB limit, denormalization, schema versioning |
-| [`cluster-sharding/`](../skills/cluster-sharding/) | `cluster-` | M-tier selection, vertical-first scaling, shard-key design |
+| [`sharding/`](../skills/sharding/) | `sharding-` | When to shard vs stay single-shard, shard-key selection (read-heavy vs write-heavy), logical/physical shard mental model, scale-up vs scale-out, hot-partition diagnosis, `sh.shardCollection` / `sh.reshardCollection`, 4 TB logical-shard budget |
 | [`query-optimization/`](../skills/query-optimization/) | `query-` | `explain("executionStats")`, avoiding `COLLSCAN` |
 | [`indexing/`](../skills/indexing/) | `index-` | Index-type selection (single / compound-ESR / multikey / wildcard / hashed / 2dsphere / TTL), query-pattern → index-shape cookbook, index budget, safe `hideIndex` → `dropIndex` lifecycle |
 | [`driver/`](../skills/driver/) | `driver-` | MongoDB driver/SDK usage (singleton client, pooling) |
