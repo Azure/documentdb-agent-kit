@@ -31,7 +31,7 @@ db.orders.find({ status: "shipped", region: "US" }).sort({ createdAt: -1 });
 db.orders.createIndex({ status: 1, region: 1, createdAt: -1 });
 ```
 
-Among multiple `$eq` filters, put the field with the fewest matching documents first. This narrows the candidate set earlier and reduces work for subsequent filters.
+**Selectivity ordering:** Among multiple `$eq` filters, put the field with the fewest matching documents first. This narrows the candidate set earlier and reduces work for subsequent filters.
 
 ```javascript
 // Collection: 1M orders, 10 customers (100K each), 2 statuses (500K each)
