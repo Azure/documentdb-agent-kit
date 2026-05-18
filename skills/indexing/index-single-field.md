@@ -57,11 +57,11 @@ db.products.createIndex(
   { name: 1 },
   { partialFilterExpression: { published: true } }
 );
-// Served by the partial index — query filter includes published:true
+// ✅ Served by the partial index — query filter includes published:true
 db.products.find({ name: "Widget Pro", published: true });
 db.products.find({ name: "Widget Pro", published: true }).sort({ name: 1 });
-// Not served — omitting published:true forces a COLLSCAN (index cannot be used)
-// db.products.find({ name: "Widget Pro" });
+// ❌ Not served — omitting published:true forces a COLLSCAN (index cannot be used)
+db.products.find({ name: "Widget Pro" });
 ```
 
 Index nested fields with dot notation:

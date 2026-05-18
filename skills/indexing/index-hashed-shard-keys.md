@@ -22,7 +22,7 @@ When you do shard, hashed vs ranged is the first decision:
 Hashing a field you routinely query by range:
 
 ```javascript
-sh.shardCollection("db.users", { createdAt: "hashed" });
+sh.shardCollection("app.events", { createdAt: "hashed" });
 // Then: db.events.find({ createdAt: { $gte: <lastHour> } }).sort({ createdAt: -1 })
 // Every shard is queried; sort is in-memory. Defeats the purpose of sharding by this field.
 ```

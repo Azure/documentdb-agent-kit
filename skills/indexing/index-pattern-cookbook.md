@@ -44,14 +44,14 @@ db.orders.createIndex({ customerId: 1, status: 1 });
 db.orders.createIndex({ status: 1, customerId: 1 });
 ```
 
-General selectivity guidance:
+General selectivity guidance (typical defaults — actual cardinality depends on the collection, so sanity-check with a quick distinct-count):
 - **High** (few matches): `userId`, `orderId`, `email`, `SKU`
 - **Medium**: `customerId`, `productId`
 - **Low** (many matches): `status`, `category`, `country`
 
 ### 3. Mixed equality — `$eq` before `$in`
 
-When some filters are exact equality (`$eq`) and others are `$in`, put exact equality fields first.
+When some filters are exact equality (`$eq`) and others are `$in`, put exact equality fields first. `$in` behaves like a bounded multi-equality / range; under ESR, place it after pure equality and (when present) the sort field.
 
 ```javascript
 db.orders.find({
@@ -116,10 +116,29 @@ db.products.find({ category: "Electronics", tags: "wireless" })
 db.products.createIndex({ category: 1, price: 1, tags: 1 });
 ```
 
-When an array field can grow large, indexing all documents creates many index entries per write. Use a partial index to restrict indexing to the subset you actually query — for example, only documents where the array is empty:
+**Partial indexes on array fields.** When an array field can grow large, two distinct patterns use a `partialFilterExpression` for different reasons:
+
+*Multikey reduction* — restrict the multikey index on the array itself to the subset of documents you actually query, so writes to documents outside the subset don't pay the per-element indexing cost.
 
 ```javascript
-// orders.items can have 100+ elements — avoid indexing them all
+// orders.items can have 100+ elements — only multikey-index open orders.
+db.orders.createIndex(
+  { items: 1 },
+  {
+    partialFilterExpression: { status: "open" },
+    name: "idx_items_open"
+  }
+);
+// ✅ Served — query filter includes status:"open" (matches the partial expression)
+db.orders.find({ status: "open", items: "SKU-123" });
+// ❌ Not served — without status:"open", planner can't use the partial index (COLLSCAN)
+db.orders.find({ items: "SKU-123" });
+```
+
+*Empty-array enumeration* — find documents whose array is empty without paying the cost of `$size: 0` (which can't use a regular multikey index and forces a scan). A partial index keyed on `_id` and filtered to the empty-array predicate gives you a cheap, direct enumeration.
+
+```javascript
+// Fast lookup for "orders with no items" without scanning the collection.
 db.orders.createIndex(
   { _id: 1 },
   {
@@ -127,8 +146,8 @@ db.orders.createIndex(
     name: "idx_empty_orders"
   }
 );
-// Quickly find orders with no items, without paying the write cost
-// of indexing every element in orders that do have items.
+// ✅ Served — query filter matches the partial expression exactly
+db.orders.find({ items: { $eq: [] } });
 ```
 
 ### 9. Nested-field filter
