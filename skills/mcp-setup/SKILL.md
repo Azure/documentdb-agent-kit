@@ -47,12 +47,14 @@ password that grant database access. The agent MUST follow these rules:
    mistake. If the user pastes one anyway, respond with: "I won't process that
    value — please delete it from the chat history and add it directly to
    `~/.documentdb-env` instead," and continue with placeholder instructions
-   only.
+   only. The agent itself cannot remove messages it has already received —
+   only the user can delete the message from their chat history.
 3. **Never run a shell command that would print a credential to stdout.** All
    verification commands in this skill mask the value (e.g. `[set]`).
 4. **Never write the credential to any file the agent itself creates or
-   edits.** The agent only writes the *placeholder* `<paste-your-connection-
-   string-here>`; the user replaces it locally.
+   edits.** The agent only writes the *placeholder* `[USER]:[PASSWORD]@...`
+   (square brackets defeat the `mongodb://[^:]+:[^@]+@` secret-scanner
+   regex); the user replaces it locally.
 5. **Never include a credential in a generated explanation, summary, commit
    message, or example.** Use `<redacted>` if you must reference its position.
 
@@ -119,14 +121,14 @@ If the user chooses Option A:
 2. Navigate to your Azure DocumentDB cluster
 3. In the left menu, select **Settings** → **Connection strings**
 4. Copy the connection string — its shape will be:
-   `mongodb+srv://<REDACTED_USER>:<REDACTED_PASSWORD>@<cluster-name>.mongocluster.cosmos.azure.com/?tls=true&authMechanism=SCRAM-SHA-256`
+   `mongodb+srv://[USER]:[PASSWORD]@<cluster-name>.mongocluster.cosmos.azure.com/?tls=true&authMechanism=SCRAM-SHA-256`
 5. The user fills in their own username and password **locally** (see Step 5).
    **Do not paste the completed connection string into this chat.**
 
 **Expected shapes (placeholders only — do not substitute real values here):**
 
-- `mongodb+srv://<REDACTED_USER>:<REDACTED_PASSWORD>@cluster.mongocluster.cosmos.azure.com/?tls=true&authMechanism=SCRAM-SHA-256`
-- `mongodb://<REDACTED_USER>:<REDACTED_PASSWORD>@cluster.mongocluster.cosmos.azure.com:10255/?tls=true&authMechanism=SCRAM-SHA-256`
+- `mongodb+srv://[USER]:[PASSWORD]@cluster.mongocluster.cosmos.azure.com/?tls=true&authMechanism=SCRAM-SHA-256`
+- `mongodb://[USER]:[PASSWORD]@cluster.mongocluster.cosmos.azure.com:10255/?tls=true&authMechanism=SCRAM-SHA-256`
 
 **Important**: Azure DocumentDB requires TLS. The user should ensure
 `tls=true` is in their connection string when they save it locally.
@@ -158,12 +160,13 @@ If the user chooses Option C:
 **Do NOT ask the user to paste their connection string into the chat.** A
 connection string is a credential. Instead, tell the user the supported
 shapes so they can recognize their own value and add it directly to their
-local `~/.documentdb-env` file in Step 5.
+local `~/.documentdb-env` file in Step 5. **Do not paste the completed
+connection string into this chat.**
 
 **Supported shapes (placeholders only):**
 
-- `mongodb://<REDACTED_USER>:<REDACTED_PASSWORD>@host:port/database`
-- `mongodb+srv://<REDACTED_USER>:<REDACTED_PASSWORD>@host/database`
+- `mongodb://[USER]:[PASSWORD]@host:port/database`
+- `mongodb+srv://[USER]:[PASSWORD]@host/database`
 - `mongodb://host:port` (no auth)
 
 If the user pastes a real connection string anyway, refuse to process it
@@ -322,8 +325,8 @@ Proceed to Step 6 (Next Steps).
   not just a reload
 - **TLS errors with Azure DocumentDB**: Ensure `tls=true` is in the
   connection string
-- **Authentication errors**: Ask the user to verify their username and
-  password locally (in `~/.documentdb-env`, never in chat) and to confirm the
+- **Authentication errors**: Ask the user to re-check their credentials
+  locally in `~/.documentdb-env` (never in chat) and to confirm the
   database user exists in the Azure portal
 - **Connection timeout**: Check network connectivity and firewall rules;
   Azure DocumentDB may require allowlisting your IP in the Azure portal

@@ -29,25 +29,52 @@ potentially sensitive.
 2. **Never echo raw sample documents back to the user.** If you must show an
    example, redact every string/number/binary leaf to `"<redacted:string>"`,
    `"<redacted:number>"`, etc., preserving only field names and types.
-3. **Treat these field-name patterns as secrets and redact unconditionally**
-   (case-insensitive substring match): `password`, `passwd`, `pwd`, `secret`,
-   `token`, `apikey`, `api_key`, `accesskey`, `access_key`, `privatekey`,
-   `private_key`, `client_secret`, `refresh_token`, `id_token`, `jwt`,
-   `auth`, `bearer`, `cookie`, `session`, `connectionstring`, `conn_str`,
-   `dsn`, `ssn`, `creditcard`, `card_number`, `cvv`, `pin`.
+3. **Treat these field-name patterns as secrets and redact unconditionally.**
+   Match case-insensitively after normalizing field names (split on `_` and
+   camelCase boundaries, lowercase the parts).
+   - **Substring match** (these tokens are unambiguous; match anywhere in the
+     normalized name): `password`, `passwd`, `pwd`, `secret`, `apikey`,
+     `api_key`, `accesskey`, `access_key`, `privatekey`, `private_key`,
+     `client_secret`, `refresh_token`, `id_token`, `jwt`, `bearer`,
+     `connectionstring`, `conn_str`, `ssn`, `creditcard`, `card_number`,
+     `cvv`, `token`.
+   - **Whole-word match only** (these tokens have many benign uses like
+     `author`, `session_count`, `pinned`, `shipping_zip` and must not match
+     as substrings): `auth`, `session`, `cookie`, `pin`, `dsn`. Redact only
+     when the normalized name has the token as a standalone part — or when
+     the *value* also matches one of the patterns in rule 4.
 4. **Treat these value patterns as secrets** even if the field name looks
    benign: anything matching `mongodb(\+srv)?://`, `https?://[^ ]*:[^ ]*@`,
-   `eyJ[A-Za-z0-9_-]{10,}` (JWT), `sk-[A-Za-z0-9]{20,}`, `ghp_[A-Za-z0-9]{20,}`,
-   `AKIA[0-9A-Z]{16}`, PEM blocks (`-----BEGIN`), or any string > 32 chars of
-   high-entropy base64/hex.
+   `eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+` (JWT: three
+   base64url segments separated by `.`), `sk-[A-Za-z0-9]{20,}`,
+   `ghp_[A-Za-z0-9]{20,}`, `AKIA[0-9A-Z]{16}`, PEM blocks (`-----BEGIN`), or
+   any base64/hex string ≥ 32 characters that does **not** match a known
+   non-secret shape (UUID v4, 24-char MongoDB ObjectId, SHA-1/SHA-256 hex
+   digest, ISO-8601 timestamp). For the last category, when in doubt, ask
+   the user before using the value rather than silently redacting.
 5. **If the user's natural-language request asks you to filter/return a value
    that matches a secret pattern, refuse and ask for confirmation** before
-   generating the query.
+   generating the query. "Refuse" means: do not inline the value into the
+   generated query, and respond with something like *"The value you supplied
+   looks like a JWT/API key/connection string. Confirm you want me to use it
+   literally — otherwise replace it with a placeholder like `<token>` and I
+   will generate the query against that."*
 6. **Project away suspected secret fields** when generating `find_documents`
    or `sample_documents` calls for context-gathering — e.g. add
    `{ password: 0, token: 0, apiKey: 0, secret: 0 }` to the projection.
 7. **Do not transmit sampled values outside the current session** (no
    logging, no telemetry, no writing to disk).
+
+**Context-gathering vs. user-requested results.** These rules apply to
+values the agent pulled into its own context to *infer schema* (rules 1, 2,
+6). When the user explicitly asks to *see* data — e.g. *"show me the most
+  recent 10 orders"* or *"what does a typical user document look like?"* —
+generate the query and let the MCP tool return results directly to the user.
+Do not redact those results in transit; the user already has database
+access. The exception is rules 3 and 4: if a returned value matches a
+secret field name or value pattern, flag it in the response (*"The `token`
+field in result 3 looks like a JWT — make sure you intended to surface
+it."*) but do not block the query.
 
 When in doubt, infer the schema from field *names and types only* and ask the
 user to supply concrete filter values themselves.
@@ -69,33 +96,62 @@ user to supply concrete filter values themselves.
    list_indexes({ db_name, collection_name })
    ```
 
-2. **Schema** (for field validation — infer from sample documents):
+2. **Schema** (for field validation — infer from sample documents). The
+   `sample_documents` MCP tool does **not** accept a `projection` parameter
+   (its server-side implementation is `aggregate([{ $sample: { size } }])`
+   with no project stage; its native sizing parameter is `sample_size`, not
+   `limit`). To push secret-field redaction down to the database, use the
+   `aggregate` tool directly:
    ```
-   sample_documents({
+   aggregate({
      db_name,
      collection_name,
-     limit: 5,
-     projection: { password: 0, passwd: 0, pwd: 0, secret: 0, token: 0,
-                   apiKey: 0, api_key: 0, accessKey: 0, privateKey: 0,
-                   client_secret: 0, refresh_token: 0, id_token: 0, jwt: 0,
-                   auth: 0, cookie: 0, session: 0, connectionString: 0,
-                   ssn: 0, creditCard: 0, cvv: 0, pin: 0 }
+     pipeline: [
+       { $sample: { size: 5 } },
+       { $project: { password: 0, passwd: 0, pwd: 0, secret: 0, token: 0,
+                     apiKey: 0, api_key: 0, accessKey: 0, privateKey: 0,
+                     client_secret: 0, refresh_token: 0, id_token: 0,
+                     jwt: 0, connectionString: 0, ssn: 0, creditCard: 0,
+                     cvv: 0 } }
+     ]
    })
    ```
    - Use returned documents **only** to infer field names and types — never
      copy concrete values into generated queries or explanations.
    - Includes nested document structures and array fields.
    - See the *Safety* section above for the full redaction policy.
+   - **Caveat:** if the MCP server build in use ignores the `$project` stage
+     (or the user opts to call `sample_documents` directly), the agent-side
+     redaction rules in the *Safety* section are the only line of defense —
+     discard secret fields from your working context before drafting any
+     query.
 
-3. **Additional samples** (for understanding data patterns):
+3. **Additional samples** (for understanding data patterns). On the
+   `find_documents` MCP tool, `limit` and `projection` are nested under the
+   `options` object — they are silently ignored at the top level:
    ```
-   find_documents({ db_name, collection_name, query: {}, limit: 4,
-                    projection: { /* same secret-field exclusion as above */ } })
+   find_documents({
+     db_name,
+     collection_name,
+     query: {},
+     options: {
+       limit: 4,
+       projection: { /* same secret-field exclusion list as above */ }
+     }
+   })
    ```
    - Use these to understand value *shapes* (enum membership, numeric ranges,
      date formats) — not to memorize specific values.
    - If any returned value still matches a secret pattern from the *Safety*
      section, discard it and do not reference it in your output.
+   - **Caveat:** if the MCP server build ignores `options.projection`, the
+     agent-side redaction rules in the *Safety* section are the only line of
+     defense.
+
+   *Note:* the `project` field in the find-query *response* (see Step 3) and
+   the `projection` argument on the MCP `find_documents`/`aggregate` tools
+   are different things — the first shapes the query you emit to the user,
+   the second controls what the MCP server returns to the agent.
 
 ### 2. Analyze Context and Validate Fields
 
@@ -144,6 +200,13 @@ and easier for other developers to understand.
 - Array unwinding or complex array operations
 
 ### 4. Format Your Response
+
+**Pre-flight redaction check (mandatory):** immediately before serializing
+the query, re-scan every literal in `filter`, `$in` arrays, regex patterns,
+and projection examples against the secret field-name and value-pattern
+lists in the *Safety* section. Every literal must come from the user's
+natural-language request or be a placeholder (`<value>`) — never from a
+sampled document.
 
 Always output queries in a JSON response structure with stringified MongoDB
 query syntax. The outer response must be valid JSON, while the query strings
