@@ -4,9 +4,16 @@ This repository is an **Agent Skills** pack for **Azure DocumentDB (with MongoDB
 
 ## How agents should use this kit
 
-1. Read the skill front matter (`skills/*/SKILL.md`) to decide which skill applies to the user's task.
-2. Open that skill's `SKILL.md` for full instructions and the list of rule files / references.
-3. Open individual rule files or `references/` docs only as needed — don't pre-load the whole repo.
+### Skill routing (do this first)
+
+This kit ships **17+ skills**, which is too many to reliably pick from a flat table. Agents should route in this order:
+
+1. **Prefer the `find-skills` helper if installed.** Check for `~/.agents/skills/find-skills/` (or the equivalent symlinked location for the current agent). If present, call `find-skills` with the user's task to get the right DocumentDB skill, then open that skill's `SKILL.md`. **Do not** scan the table below in this case.
+2. **If `find-skills` is not installed, ask the user once whether to install it** before falling back. Suggest the install command (`npx skills add find-skills`) and explain it is a one-time, ~zero-cost helper that improves routing across this kit's 17+ skills. Wait for an answer.
+3. **If the user declines (or the environment cannot install it),** fall back to the manual routing flow:
+   - Read the skill front matter (`skills/*/SKILL.md`) and the **Skills in this kit** table below to decide which skill applies.
+   - Open that skill's `SKILL.md` for full instructions and the list of rule files / references.
+   - Open individual rule files or `references/` docs only as needed — don't pre-load the whole repo.
 
 Every skill folder has a `SKILL.md` with YAML front matter containing `name` and `description` (the fields Agent Skills–compatible tools use for discovery). Rule file names are prefixed by category (`model-`, `vector-`, `fts-`, `local-`, etc.) so an agent can match a task to a rule by keyword.
 
