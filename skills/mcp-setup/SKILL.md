@@ -34,6 +34,33 @@ cluster. Users have three options:
 This is an interactive step-by-step guide. The agent detects the user's
 environment and provides tailored instructions.
 
+## Safety: Never Receive Credentials In-Chat
+
+The DocumentDB connection string is a **secret** — it contains a username and
+password that grant database access. The agent MUST follow these rules:
+
+1. **Never ask the user to paste a connection string, password, token, or any
+   other credential into the chat.** Always instruct the user to write the
+   value directly into a local file (`~/.documentdb-env` or a PowerShell
+   profile) themselves.
+2. **Never read, echo, log, or repeat back a credential** the user pasted by
+   mistake. If the user pastes one anyway, respond with: "I won't process that
+   value — please delete it from the chat history and add it directly to
+   `~/.documentdb-env` instead," and continue with placeholder instructions
+   only. The agent itself cannot remove messages it has already received —
+   only the user can delete the message from their chat history.
+3. **Never run a shell command that would print a credential to stdout.** All
+   verification commands in this skill mask the value (e.g. `[set]`).
+4. **Never write the credential to any file the agent itself creates or
+   edits.** The agent only writes the *placeholder* `[USER]:[PASSWORD]@...`
+   (square brackets defeat the `mongodb://[^:]+:[^@]+@` secret-scanner
+   regex); the user replaces it locally.
+5. **Never include a credential in a generated explanation, summary, commit
+   message, or example.** Use `<redacted>` if you must reference its position.
+
+If any step below appears to require a credential value, treat it as a
+placeholder for the user to fill in locally.
+
 ## Step 1: Check Existing Configuration
 
 Before starting the setup, check if the user already has the required
@@ -93,17 +120,18 @@ If the user chooses Option A:
 1. Go to the [Azure portal](https://portal.azure.com)
 2. Navigate to your Azure DocumentDB cluster
 3. In the left menu, select **Settings** → **Connection strings**
-4. Copy the connection string — it will look like:
-   `mongodb+srv://<username>:<password>@<cluster-name>.mongocluster.cosmos.azure.com/?tls=true&authMechanism=SCRAM-SHA-256`
-5. Replace `<username>` and `<password>` with your database user credentials
+4. Copy the connection string — its shape will be:
+   `mongodb+srv://[USER]:[PASSWORD]@<cluster-name>.mongocluster.cosmos.azure.com/?tls=true&authMechanism=SCRAM-SHA-256`
+5. The user fills in their own username and password **locally** (see Step 5).
+   **Do not paste the completed connection string into this chat.**
 
-**Expected formats:**
+**Expected shapes (placeholders only — do not substitute real values here):**
 
-- `mongodb+srv://<user>:<password>@cluster.mongocluster.cosmos.azure.com/?tls=true&authMechanism=SCRAM-SHA-256`
-- `mongodb://<user>:<password>@cluster.mongocluster.cosmos.azure.com:10255/?tls=true&authMechanism=SCRAM-SHA-256`
+- `mongodb+srv://[USER]:[PASSWORD]@cluster.mongocluster.cosmos.azure.com/?tls=true&authMechanism=SCRAM-SHA-256`
+- `mongodb://[USER]:[PASSWORD]@cluster.mongocluster.cosmos.azure.com:10255/?tls=true&authMechanism=SCRAM-SHA-256`
 
-**Important**: Azure DocumentDB requires TLS. Ensure `tls=true` is in the
-connection string.
+**Important**: Azure DocumentDB requires TLS. The user should ensure
+`tls=true` is in their connection string when they save it locally.
 
 Proceed to Step 4 (Configure Transport Mode).
 
@@ -129,13 +157,20 @@ Proceed to Step 4 (Configure Transport Mode).
 
 If the user chooses Option C:
 
-Ask the user for their MongoDB-compatible connection string.
+**Do NOT ask the user to paste their connection string into the chat.** A
+connection string is a credential. Instead, tell the user the supported
+shapes so they can recognize their own value and add it directly to their
+local `~/.documentdb-env` file in Step 5. **Do not paste the completed
+connection string into this chat.**
 
-**Expected formats:**
+**Supported shapes (placeholders only):**
 
-- `mongodb://<user>:<password>@host:port/database`
-- `mongodb+srv://<user>:<password>@host/database`
+- `mongodb://[USER]:[PASSWORD]@host:port/database`
+- `mongodb+srv://[USER]:[PASSWORD]@host/database`
 - `mongodb://host:port` (no auth)
+
+If the user pastes a real connection string anyway, refuse to process it
+(see the *Safety* section) and continue to Step 4 with placeholders only.
 
 Proceed to Step 4 (Configure Transport Mode).
 
@@ -164,9 +199,13 @@ Proceed to Step 5 (Update Shell Profile).
 
 ## Step 5: Update Shell Profile
 
-Help the user add the environment variables to their shell profile. **Do not ask
-for or handle credentials** — provide exact instructions so the user can add
-them directly.
+Help the user add the environment variables to their shell profile.
+
+**Strict rule (see Safety section):** the agent must **never** ask the user to
+paste their connection string into the chat, and must **never** write the
+actual credential value into any file. The agent only emits the placeholder
+`<paste-your-connection-string-here>`; the user opens the file in their own
+editor and substitutes the real value locally.
 
 ### 5.1: Detect Shell and Profile File
 
@@ -286,8 +325,9 @@ Proceed to Step 6 (Next Steps).
   not just a reload
 - **TLS errors with Azure DocumentDB**: Ensure `tls=true` is in the
   connection string
-- **Authentication errors**: Verify username and password in the connection
-  string are correct; check that the user exists in Azure portal
+- **Authentication errors**: Ask the user to re-check their credentials
+  locally in `~/.documentdb-env` (never in chat) and to confirm the
+  database user exists in the Azure portal
 - **Connection timeout**: Check network connectivity and firewall rules;
   Azure DocumentDB may require allowlisting your IP in the Azure portal
   under Networking settings

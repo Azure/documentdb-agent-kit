@@ -1,0 +1,84 @@
+name: Snyk Code (optional)
+
+# Optional secondary SAST. The primary scanner for this repo is CodeQL
+# (`.github/workflows/codeql.yml`). Snyk runs here only when:
+#
+# 1. A maintainer triggers it manually via `workflow_dispatch`, OR
+# 2. The weekly schedule fires AND a `SNYK_TOKEN` repository secret is set.
+#
+# It never runs on `push` or `pull_request`, and it never fails the build.
+# SARIF is uploaded to the Security tab when produced, so findings still
+# surface alongside CodeQL.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekly, offset from CodeQL so the Security tab doesn't get two
+    # simultaneous SARIF uploads.
+    - cron: "0 7 * * 1"
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  snyk-code:
+    name: Snyk Code (SAST, advisory-only)
+    runs-on: ubuntu-latest
+    # Skip on forks; the token is only available in the upstream repo.
+    if: ${{ github.repository_owner == 'Azure' }}
+    steps:
+      - name: Check for SNYK_TOKEN
+        id: token
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          if [ -z "$SNYK_TOKEN" ]; then
+            echo "SNYK_TOKEN not set; skipping Snyk scan." >&2
+            echo "has_token=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_token=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        if: steps.token.outputs.has_token == 'true'
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        if: steps.token.outputs.has_token == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Snyk CLI
+        if: steps.token.outputs.has_token == 'true'
+        run: npm install -g snyk
+
+      - name: Snyk Code test (SARIF)
+        if: steps.token.outputs.has_token == 'true'
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        # `snyk code test` exits non-zero when issues are found. We swallow
+        # that here so SARIF still uploads; this workflow is advisory-only
+        # and must never block the build (CodeQL is the gating scanner).
+        run: |
+          snyk code test \
+            --sarif-file-output=snyk.sarif \
+            --severity-threshold=low \
+            || true
+
+      - name: Upload SARIF to GitHub code scanning
+        if: steps.token.outputs.has_token == 'true' && hashFiles('snyk.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: snyk.sarif
+          category: snyk-code
+
+      - name: Upload SARIF as workflow artifact
+        if: steps.token.outputs.has_token == 'true' && hashFiles('snyk.sarif') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: snyk-sarif
+          path: snyk.sarif
+          retention-days: 30
