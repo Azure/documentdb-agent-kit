@@ -10,6 +10,9 @@ Skills follow the [Agent Skills](https://agentskills.io/) format and the kit shi
 
 The plugin bundles the [DocumentDB MCP server](https://github.com/microsoft/documentdb-mcp) (`documentdb-mcp-server` on npm — Node.js 20+) together with all skills under `skills/`.
 
+> ⚠️ **Plugin install paths are not yet published.** The per-agent plugin/marketplace commands below are commented out until the plugin lands in each agent's registry. In the meantime, use the [skills-only one-liner](#universal-one-liner--skills-only-no-mcp-server) to install the skill catalog.
+
+<!--
 ### Claude Code
 
 Inside a Claude Code session:
@@ -45,6 +48,7 @@ gemini extensions install https://github.com/Azure/documentdb-agent-kit
 ```
 
 Then restart Copilot CLI to activate the MCP server. For Copilot in the IDE, [`AGENTS.md`](AGENTS.md) at the repo root is read automatically — no extra wiring.
+-->
 
 ### Universal one-liner — skills only (no MCP server)
 
@@ -62,12 +66,20 @@ New skills, rule fixes, and MCP-server updates are released on `main`. Installs 
 
 | Install path | Update command |
 |---|---|
+| Skills only (skills.sh CLI) | re-run `npx skills add Azure/documentdb-agent-kit` |
+
+<!--
+Per-agent update commands (will be uncommented once plugin install paths are published):
+
+| Install path | Update command |
+|---|---|
 | Claude Code | `/plugin update documentdb@azure-documentdb` |
 | Cursor | re-run `/add-plugin azure/documentdb-agent-kit` |
 | Codex | `codex plugin update documentdb` |
 | Gemini CLI | `gemini extensions update documentdb-agent-kit` |
 | GitHub Copilot CLI | `/plugin update https://github.com/Azure/documentdb-agent-kit.git` (or uninstall + reinstall) |
-| Skills only (skills.sh CLI) | re-run `npx skills add Azure/documentdb-agent-kit` |
+-->
+
 
 > **Skills CLI note:** `npx skills update` exists but is unreliable for GitHub-sourced skills on the current `skills` CLI release. **Re-running `npx skills add Azure/documentdb-agent-kit` is the recommended refresh path** — it re-fetches the latest `main` and overlays the updated rule files. Add `--all` if you originally installed with `--all`.
 
