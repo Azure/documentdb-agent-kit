@@ -50,12 +50,6 @@ Single-purpose skills the agent loads when its trigger description matches.
 - Configuring HA, cross-region replication, CMK, firewall, and RBAC
 - Optimizing indexes or diagnosing slow queries
 
-## Installation
-
-```bash
-npx skills add <org>/documentdb-agent-kit
-```
-
 ## Repo Structure
 
 ```
@@ -70,40 +64,119 @@ skills/
 
 ## Installation
 
-This kit follows the [Agent Skills](https://agentskills.io/) format. Every skill folder under `skills/` has a `SKILL.md` with `name` + `description` front matter, so Agent Skills–compatible tools can discover them automatically.
+The kit ships with a one-command installer that wires both the **skills** and
+the [`microsoft/documentdb-mcp`](https://github.com/microsoft/documentdb-mcp)
+server into every detected MCP client.
 
-### Claude Code
+### One-liner (recommended)
 
-Project-scoped (only this repo sees the skills):
+**macOS / Linux:**
 
 ```bash
+curl -fsSL https://raw.githubusercontent.com/Azure/documentdb-agent-kit/main/install.sh | bash -s -- --uri "<your-connection-string>"
+```
+
+**Windows (PowerShell):**
+
+```powershell
+$env:DOCUMENTDB_URI = "<your-connection-string>"
+irm https://raw.githubusercontent.com/Azure/documentdb-agent-kit/main/install.ps1 | iex
+```
+
+Local-dev quickstart (no Azure cluster needed, assuming a running documentdb-local container):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Azure/documentdb-agent-kit/main/install.sh | bash -s -- --uri "mongodb://localhost:27017"
+```
+
+### What gets installed
+
+| Path | What |
+|---|---|
+| `~/.documentdb-agent-kit/agent-kit/` | Clone of this repo (skills + AGENTS.md) |
+| `~/.documentdb-agent-kit/mcp-server/` | Clone + build of `microsoft/documentdb-mcp` |
+
+Then, per detected client:
+
+| Client | MCP entry → | Skills → |
+|---|---|---|
+| Claude Code | `~/.claude.json` | `~/.claude/skills/` (symlinks) |
+| Claude Desktop | `claude_desktop_config.json` (per-OS path) | `Claude/skills/` (symlinks, if dir exists) |
+| Cursor | `~/.cursor/mcp.json` | — (use Cursor Rules per-project) |
+| GitHub Copilot CLI | `~/.copilot/mcp-config.json` | — (copy `AGENTS.md` per-project) |
+| Gemini CLI | `~/.gemini/settings.json` | — (use `GEMINI.md` per-project) |
+
+Existing entries in each client's config are preserved — the installer only
+adds (or updates) a single `DocumentDB` entry. A timestamped `.bak` backup is
+written before every JSON edit.
+
+### Requirements
+
+- `git`
+- Node.js 20+ and `npm` (the MCP server is a Node app, built from source on
+  install). `--skills-only` mode skips Node requirements.
+
+### Common flags
+
+```text
+--uri <conn>        DocumentDB / MongoDB connection string
+--yes               Non-interactive (don't prompt)
+--dry-run           Print planned changes; write nothing
+--uninstall         Remove MCP entries, skill symlinks, and ~/.documentdb-agent-kit
+--clients <list>    Comma-separated: claude-code,claude-desktop,cursor,copilot-cli,gemini-cli
+--skills-only       Skip MCP server install
+--mcp-only          Skip skill linking
+--mcp-ref <ref>     Git ref of microsoft/documentdb-mcp (default: main)
+--profile <name>    CONNECTION_PROFILES key name (default: default)
+```
+
+Connection string can also be supplied via `$DOCUMENTDB_URI` (or
+`$env:DOCUMENTDB_URI` on PowerShell). When neither flag nor env var is set and
+a TTY is attached, the installer prompts.
+
+### Verify it worked
+
+1. Fully **quit** and reopen each configured client (not just close the window).
+2. Ask the agent: *"list databases using the DocumentDB MCP server with connection_profile 'default'"*.
+3. You should get back the database list.
+
+### Uninstall
+
+```bash
+# macOS / Linux
+curl -fsSL https://raw.githubusercontent.com/Azure/documentdb-agent-kit/main/install.sh | bash -s -- --uninstall --yes
+```
+
+```powershell
+# Windows
+irm https://raw.githubusercontent.com/Azure/documentdb-agent-kit/main/install.ps1 | iex -ArgumentList '-Uninstall','-Yes'
+```
+
+Removes the kit's `DocumentDB` MCP entry from every client, removes skill
+symlinks, and deletes `~/.documentdb-agent-kit/`. Other MCP servers and your
+non-kit skills are left untouched.
+
+### Manual install (no script)
+
+If you don't want to run the installer, every step is documented in the
+[`documentdb-mcp-setup` skill](skills/mcp-setup/SKILL.md) (per-client config
+file paths, MCP server config template, `CONNECTION_PROFILES` JSON, etc.).
+For skills-only manual install:
+
+```bash
+# Claude Code (project-scoped)
 mkdir -p .claude && ln -s "$(pwd)/skills" .claude/skills
+
+# Claude Code (user-scoped)
+mkdir -p ~/.claude/skills && for d in skills/*/; do ln -s "$(pwd)/$d" ~/.claude/skills/; done
+
+# Gemini CLI (project-scoped)
+ln -s AGENTS.md GEMINI.md
+
+# GitHub Copilot / other AGENTS.md-aware clients: drop AGENTS.md + skills/ at repo root
 ```
 
-User-scoped (every project sees the skills):
-
-```bash
-mkdir -p ~/.claude/skills
-for d in skills/*/; do ln -s "$(pwd)/$d" ~/.claude/skills/; done
-```
-
-On Windows/PowerShell, use `New-Item -ItemType SymbolicLink` or just copy the folder.
-
-### GitHub Copilot (CLI and IDE)
-
-`AGENTS.md` at the repo root is the entry point — Copilot reads it automatically when you open the repo. No extra wiring required. If you want Copilot to see the kit in a *different* repo, copy `AGENTS.md` and the `skills/` folder into that repo's root.
-
-### Gemini CLI
-
-Gemini CLI reads `GEMINI.md`:
-
-```bash
-ln -s AGENTS.md GEMINI.md      # or: cp AGENTS.md GEMINI.md
-```
-
-### Other Agent Skills–compatible tools
-
-Point the tool at `skills/` as your skills directory. Each `skills/<name>/SKILL.md` is a discoverable skill with its own `name` and `description`.
+On Windows, use `New-Item -ItemType SymbolicLink` or copy folders.
 
 ## Validating skills
 

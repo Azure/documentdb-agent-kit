@@ -36,7 +36,7 @@ These skills walk the user (or another agent) through a task end-to-end.
 
 | Skill | Folder | When to use |
 |---|---|---|
-| `documentdb-mcp-setup` | `skills/mcp-setup/` | User has the DocumentDB MCP server installed but hasn't configured `DOCUMENTDB_URI` / transport / shell profile |
+| `documentdb-mcp-setup` | `skills/mcp-setup/` | Installing / configuring the DocumentDB MCP server in an agentic client (Claude Code, Claude Desktop, Cursor, Copilot CLI, Gemini CLI, VS Code); defining `CONNECTION_PROFILES` |
 | `documentdb-azure-deployment` | `skills/azure-deployment/` | Provisioning an Azure DocumentDB cluster (`Microsoft.DocumentDB/mongoClusters`) via Bicep, Azure CLI, Terraform, or portal; firewall rules; connection string retrieval |
 | `documentdb-natural-language-querying` | `skills/natural-language-querying/` | "How do I query…", "filter / group / aggregate…", SQL → MQL translation (read-only queries only) |
 | `documentdb-query-optimizer` | `skills/query-optimizer/` | "Why is this slow?", index review, `explain()`-driven tuning; loads `references/core-indexing-principles.md` |

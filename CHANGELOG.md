@@ -1,5 +1,46 @@
 # Changelog
 
+## 2026-05-21 — Cross-client installer: skills + DocumentDB MCP server in one command
+
+Replaced the non-functional `npx skills add Azure/documentdb-agent-kit`
+placeholder with real installers (`install.sh` for macOS/Linux, `install.ps1`
+for Windows / cross-platform PowerShell) that, in one command, wire both the
+kit's skills and the [`microsoft/documentdb-mcp`](https://github.com/microsoft/documentdb-mcp)
+server into every detected client.
+
+What landed:
+
+- **`install.sh`** — POSIX bash installer, zero runtime deps beyond `git` +
+  Node 20+. Auto-detects Claude Code, Claude Desktop, Cursor, GitHub Copilot
+  CLI, and Gemini CLI; clones+builds the MCP server into
+  `~/.documentdb-agent-kit/mcp-server/`; symlinks each skill into clients that
+  support a skills directory; merges (idempotently) a single `DocumentDB` MCP
+  entry into each client's JSON config with a timestamped `.bak` backup before
+  every edit. Uses `python3` for JSON merging when available (universal on
+  dev machines), falls back to `jq`.
+- **`install.ps1`** — PowerShell 5.1+ / pwsh 7+ mirror. Same flow, native
+  `ConvertFrom-Json` / `ConvertTo-Json` for merges. Falls back to copying skills
+  when symlink creation requires Developer Mode / admin on Windows.
+- **Flags on both:** `--uri`, `--yes`, `--dry-run`, `--uninstall`, `--clients`,
+  `--skills-only`, `--mcp-only`, `--mcp-ref`, `--kit-ref`, `--profile`.
+- **README rewrite** — install section now documents the one-liner, what gets
+  installed where, requirements, flags, verify steps, uninstall, and a
+  manual-install fallback.
+- **`skills/mcp-setup/SKILL.md` rewrite** — the previous version told users to
+  set `DOCUMENTDB_URI` in a shell profile, which is **not** how the current
+  upstream MCP server is configured. Rewrote around the actual upstream
+  contract: per-client MCP config file with `CONNECTION_PROFILES` JSON,
+  `TRANSPORT=stdio`, and `ALLOW_UNAUTHENTICATED_STDIO=true`. Added per-client
+  config-file table for Claude Code / Desktop / Cursor / Copilot CLI / Gemini
+  CLI / VS Code. Updated AGENTS.md's mcp-setup row accordingly.
+
+Verified end-to-end (Bash + PowerShell) in sandboxed `$HOME` against fake
+client configs: existing MCP servers preserved, single- and multi-element
+`args` arrays preserved across JSON round-trips, idempotent re-runs do not
+duplicate the `DocumentDB` entry, uninstall removes only the kit's entries
+and symlinks (foreign symlinks + other server entries untouched), and
+`~/.documentdb-agent-kit/` is removed on uninstall.
+
 ## 2026-04-21 — `full-text-search`: corrected to `createSearchIndexes` + `$search` syntax; added analyzer rules
 
 Previous rules documented the community MongoDB shape (`createIndexes` with `{ field: "textSearch" }` keys and a `count` field inside `$search`). Azure DocumentDB full-text search actually uses:
