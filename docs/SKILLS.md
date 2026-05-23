@@ -26,7 +26,7 @@ why it matters → incorrect example → correct example → references.
 | [`full-text-search/`](../skills/full-text-search/) | `fts-` | `createSearchIndexes` + `$search` for BM25 keyword / phrase / fuzzy; custom analyzers (keyword + edgeGram) for prefix matching on IDs; `pathHierarchy` for hierarchical identifiers; multi-field search indexes; hybrid (BM25 + vector) with RRF |
 | [`high-availability/`](../skills/high-availability/) | `ha-` | Enabling HA + zone redundancy, cross-region replica, automatic backup retention, documented SLAs |
 | [`storage/`](../skills/storage/) | `storage-` | Premium SSD v2 high-performance storage: compute-tier-gated IOPS/bandwidth caps, v1 vs v2 selection, limitations (no CMK, migration paths), disk-hydration sequencing |
-| [`security/`](../skills/security/) | `security-` | TLS, Private Endpoint, Microsoft Entra RBAC, CMK |
+| [`security/`](../skills/security/) | `security-` | TLS, Private Endpoint, IP firewall rules (CIDR + propagation), Azure RBAC actions for `mongoClusters/*`, Microsoft Entra ID + OIDC authentication, MongoDB database roles for data-plane access (incl. `readWriteAnyDatabase`+`clusterAdmin` pairing), token-lifetime / revocation pattern, CMK |
 | [`monitoring/`](../skills/monitoring/) | `monitoring-` | Slow query logs, metrics & alerts |
 | [`local-deployment/`](../skills/local-deployment/) | `local-` | Docker image choice, Compose, TLS, env-driven config, dev/prod parity |
 
