@@ -15,6 +15,32 @@ backend connection details live in a `CONNECTION_PROFILES` JSON map defined in
 the MCP client's config. Tools never accept a connection string as a runtime
 argument — they reference a named profile via `connection_profile`.
 
+## Safety: never receive credentials in chat
+
+The DocumentDB connection string is a **secret** — it contains a username and
+password that grant database access. The agent MUST follow these rules:
+
+1. **Never ask the user to paste a connection string, password, or token into
+   the chat.** Always instruct the user to add the value directly to their
+   local MCP config file themselves (or run the bundled installer, which
+   prompts via stdin instead of chat).
+2. **Never read, echo, log, or repeat back a credential** the user pasted by
+   mistake. If the user pastes one anyway, respond with: "I won't process that
+   value — please delete it from the chat history and add it directly to your
+   client's MCP config instead," and continue with placeholders only. The
+   agent itself cannot remove messages it has already received — only the
+   user can delete the message from their chat history.
+3. **Never run a shell command that would print a credential to stdout.**
+4. **Never write the credential to any file the agent itself creates or
+   edits.** The agent only writes placeholder `[USER]:[PASSWORD]@...` (square
+   brackets defeat the `mongodb://[^:]+:[^@]+@` secret-scanner regex); the
+   user replaces it locally.
+5. **Never include a credential in a generated explanation, summary, commit
+   message, or example.** Use `<redacted>` if you must reference its position.
+
+If any step below appears to require a credential value, treat it as a
+placeholder for the user to fill in locally.
+
 ## Fastest path: bundled installer
 
 If the user wants the quickest path and is willing to run a script, point them
@@ -190,5 +216,7 @@ existing `mcpServers` object — don't overwrite the whole file.
   double quotes must be escaped (`\"`). Use a JSON validator if the client
   silently ignores the server. The bundled installer handles escaping
   correctly — prefer it if escaping is painful.
+- **Client doesn't pick up the new server**: ensure a full restart of the
+  client (quit + reopen), not just a window reload.
 - **VS Code uses `mcp.servers`, not `mcpServers`**: this is the one client
   with a different top-level key.

@@ -4,9 +4,11 @@
 
 ## Why it matters
 
-A **hashed index** (`{ field: "hashed" }`) stores a hash of the field's value instead of the raw value. Its main purpose is enabling **hashed shard keys**, which distribute writes evenly across shards — essential when a monotonically increasing key (e.g., `_id: ObjectId()`, `createdAt`) would otherwise hot-spot a single shard.
+Sharding is the **scale-out** strategy for Azure DocumentDB — partitioning a collection across multiple nodes by a **shard key** so that storage and throughput grow horizontally. In Azure DocumentDB, sharding is only needed for very high throughput workloads or storage above **32 TB**; below that, a single cluster tier handles it. Choosing `"hashed"` as the shard key type distributes writes evenly regardless of the key's natural ordering, avoiding hot-spots caused by monotonically increasing values (e.g., `ObjectId`, `createdAt`).
 
-In Azure DocumentDB, an explicit shard key isn't required until the database grows past terabyte scale (see `cluster-sharding/cluster-scale-before-shard`). When you do shard, hashed vs ranged is the first decision:
+As a consequence, DocumentDB creates a **hashed index** on the chosen field. Internally, the hash value is stored as part of a composite index alongside `_id`, which is what routes each document to the correct shard.
+
+When you do shard, hashed vs ranged is the first decision:
 
 | Property | Hashed shard key | Ranged shard key |
 |---|---|---|
@@ -20,9 +22,9 @@ In Azure DocumentDB, an explicit shard key isn't required until the database gro
 Hashing a field you routinely query by range:
 
 ```javascript
-db.events.createIndex({ createdAt: "hashed" });
+sh.shardCollection("app.events", { createdAt: "hashed" });
 // Then: db.events.find({ createdAt: { $gte: <lastHour> } }).sort({ createdAt: -1 })
-// Every shard is queried; sort is in-memory. Defeats the point of a shard key.
+// Every shard is queried; sort is in-memory. Defeats the purpose of sharding by this field.
 ```
 
 Using a hashed index for anything other than shard-key support:
@@ -30,7 +32,7 @@ Using a hashed index for anything other than shard-key support:
 ```javascript
 db.users.createIndex({ email: "hashed" });   // normal user lookup
 db.users.find({ email: "alice@example.com" });
-// A regular b-tree index on email is faster and supports range/prefix queries too.
+// A regular index on email is faster and supports range/prefix queries too.
 ```
 
 ## Correct
@@ -45,7 +47,7 @@ sh.shardCollection("app.events", { _id: "hashed" });
 // or accept scatter-gather.
 ```
 
-For **query-driven** workloads (orders by customer, posts by author), prefer a ranged shard key aligned with the dominant access pattern — see `cluster-sharding/cluster-shard-key-query-aligned`.
+For **query-driven** workloads (orders by customer, posts by author), prefer a ranged shard key aligned with the dominant access pattern.
 
 Guidelines:
 
@@ -56,4 +58,3 @@ Guidelines:
 ## References
 
 - [MongoDB hashed indexes](https://www.mongodb.com/docs/manual/core/index-hashed/)
-- `cluster-sharding/cluster-shard-key-query-aligned.md`

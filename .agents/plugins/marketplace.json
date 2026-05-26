@@ -1,0 +1,21 @@
+{
+  "name": "azure-documentdb-agent-kit",
+  "interface": {
+    "displayName": "Azure DocumentDB Agent Kit"
+  },
+  "plugins": [
+    {
+      "name": "documentdb",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/Azure/documentdb-agent-kit.git",
+        "ref": "main"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Databases"
+    }
+  ]
+}

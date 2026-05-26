@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "documentdb": {
+      "command": "npx",
+      "args": ["-y", "documentdb-mcp-server"],
+      "env": {
+        "TRANSPORT": "stdio",
+        "AUTH_REQUIRED": "false",
+        "ALLOW_UNAUTHENTICATED_STDIO": "true",
+        "CONNECTION_PROFILES": "${DOCUMENTDB_CONNECTION_PROFILES}",
+        "ENABLE_READ_TOOLS": "true",
+        "ENABLE_WRITE_TOOLS": "false",
+        "ENABLE_MANAGEMENT_TOOLS": "false"
+      }
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "name": "documentdb",
+  "version": "0.1.0",
+  "description": "Official Codex plugin for Azure DocumentDB (MongoDB-compatible). MCP server + skills.",
+  "author": {
+    "name": "Azure",
+    "email": "mongodb-feedback@microsoft.com",
+    "url": "https://azure.microsoft.com"
+  },
+  "homepage": "https://github.com/Azure/documentdb-agent-kit",
+  "repository": "https://github.com/Azure/documentdb-agent-kit",
+  "license": "MIT",
+  "keywords": [
+    "azure",
+    "documentdb",
+    "cosmosdb",
+    "mongodb",
+    "mcp",
+    "vector-search",
+    "database"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json",
+  "interface": {
+    "displayName": "Azure DocumentDB",
+    "shortDescription": "Official Azure DocumentDB plugin: MCP server, skills, and best practices for MongoDB-compatible workflows on Azure.",
+    "longDescription": "The official Azure DocumentDB plugin bundles the documentdb-mcp-server and a curated set of agent skills covering data modeling, indexing (ESR / multikey / wildcard / hashed / 2dsphere / TTL), query optimization with explain plans, vector search via cosmosSearch (DiskANN / HNSW / IVF, PQ, fp16), full-text search with $search, cluster sizing and shard-key design, high availability and cross-region replicas, security (TLS, Private Endpoint, Entra RBAC, CMK), monitoring, local Docker/Compose deployment, and Azure deployment via Bicep / CLI / Terraform. It gives your agent the tools and knowledge to provision a cluster, connect to any DocumentDB deployment, explore data, generate reliable code, and apply Azure DocumentDB best practices end to end.",
+    "developerName": "Azure",
+    "category": "Databases",
+    "capabilities": ["Read", "Write"],
+    "websiteURL": "https://learn.microsoft.com/azure/cosmos-db/mongodb/vcore/",
+    "privacyPolicyURL": "https://privacy.microsoft.com/privacystatement",
+    "defaultPrompt": [
+      "Set up my Azure DocumentDB connection using the mcp-setup skill.",
+      "Connect to my Azure DocumentDB cluster and explore its collections.",
+      "Write a MongoDB aggregation pipeline to analyze my data.",
+      "Why is this query slow? Use explain() to recommend an index.",
+      "Provision an Azure DocumentDB (MongoDB vCore) cluster with Bicep."
+    ],
+    "logo": "./assets/logo.jpg",
+    "brandColor": "#0078D4"
+  }
+}

@@ -4,9 +4,16 @@ This repository is an **Agent Skills** pack for **Azure DocumentDB (with MongoDB
 
 ## How agents should use this kit
 
-1. Read the skill front matter (`skills/*/SKILL.md`) to decide which skill applies to the user's task.
-2. Open that skill's `SKILL.md` for full instructions and the list of rule files / references.
-3. Open individual rule files or `references/` docs only as needed — don't pre-load the whole repo.
+### Skill routing (do this first)
+
+This kit ships **17+ skills**, which is too many to reliably pick from a flat table. Agents should route in this order:
+
+1. **Prefer the `find-skills` helper if installed.** Check for `~/.agents/skills/find-skills/` (or the equivalent symlinked location for the current agent). If present, call `find-skills` with the user's task to get the right DocumentDB skill, then open that skill's `SKILL.md`. **Do not** scan the table below in this case.
+2. **If `find-skills` is not installed, ask the user once whether to install it** before falling back. Suggest the install command (`npx skills add find-skills`) and explain it is a one-time, ~zero-cost helper that improves routing across this kit's 17+ skills. Wait for an answer.
+3. **If the user declines (or the environment cannot install it),** fall back to the manual routing flow:
+   - Read the skill front matter (`skills/*/SKILL.md`) and the **Skills in this kit** table below to decide which skill applies.
+   - Open that skill's `SKILL.md` for full instructions and the list of rule files / references.
+   - Open individual rule files or `references/` docs only as needed — don't pre-load the whole repo.
 
 Every skill folder has a `SKILL.md` with YAML front matter containing `name` and `description` (the fields Agent Skills–compatible tools use for discovery). Rule file names are prefixed by category (`model-`, `vector-`, `fts-`, `local-`, etc.) so an agent can match a task to a rule by keyword.
 
@@ -19,7 +26,6 @@ These skills each describe a feature area and link to short rule files with inco
 | Skill | Folder | When to use |
 |---|---|---|
 | `documentdb-data-modeling` | `skills/data-modeling/` | Designing schemas, embed vs reference, 16 MB limit, denormalization, schema versioning |
-| `documentdb-cluster-sharding` | `skills/cluster-sharding/` | Picking an M-tier, scaling decisions, shard-key design at TB scale |
 | `documentdb-query-optimization` | `skills/query-optimization/` | Writing queries that use indexes; reading `explain("executionStats")` |
 | `documentdb-indexing` | `skills/indexing/` | Choosing the right index type (single / compound / multikey / wildcard / hashed / 2dsphere / TTL); ESR ordering; query-pattern → index-shape cookbook; safe index lifecycle (`hideIndex` → `dropIndex`) |
 | `documentdb-driver` | `skills/driver/` | Singleton `MongoClient`, connection reuse fundamentals |
@@ -48,7 +54,6 @@ These skills walk the user (or another agent) through a task end-to-end.
 - **"Why is this query slow / how do I index this?"** → `documentdb-query-optimizer`
 - **"Which index type should I use / design this index"** → `documentdb-indexing`
 - **Designing a schema / data model** → `documentdb-data-modeling`
-- **Picking / sizing a cluster** → `documentdb-cluster-sharding`
 - **Adding vector search to a RAG app** → `documentdb-vector-search`
 - **Adding keyword / BM25 search** → `documentdb-full-text-search`
 - **Configuring `MongoClient` / connection string** → `documentdb-connection` (pool tuning) or `documentdb-driver` (basic patterns)
@@ -61,12 +66,25 @@ These skills walk the user (or another agent) through a task end-to-end.
 
 ## Cross-tool compatibility
 
-The same `skills/` tree is consumable by:
+This kit is distributed as an installable plugin/extension for every major coding agent. The plugin bundles the [DocumentDB MCP server](https://github.com/microsoft/documentdb-mcp) (`documentdb-mcp-server` on npm) together with the `skills/` tree.
 
-- **Claude Code** — copy or symlink `skills/` to `.claude/skills/` (project) or `~/.claude/skills/` (user).
-- **GitHub Copilot (CLI / IDE)** — this `AGENTS.md` at the repo root is the entry point; Copilot reads it automatically.
-- **Gemini CLI** — symlink `AGENTS.md` to `GEMINI.md`, or copy its contents.
-- **Any Agent Skills–compatible tool** — each skill folder has a `SKILL.md` with `name` + `description` front matter, per the [Agent Skills](https://agentskills.io/) format.
+| Agent | Install command | Update command | Manifest |
+|---|---|---|---|
+| Skills only (any agent) | `npx skills add Azure/documentdb-agent-kit` | re-run `npx skills add Azure/documentdb-agent-kit` (preferred) or `npx skills update` | walks `skills/` directly (no MCP server) |
 
-See `README.md` for the exact per-tool install commands and the skill-validation script.
+> ⚠️ Per-agent plugin install paths are not yet published — see the commented-out rows below for the planned commands.
+
+<!--
+| Claude Code | `/plugin marketplace add Azure/documentdb-agent-kit` then `/plugin install documentdb` | `/plugin update documentdb@azure-documentdb` | [`.claude-plugin/`](.claude-plugin/) |
+| Cursor | `/add-plugin azure/documentdb-agent-kit` | re-run `/add-plugin azure/documentdb-agent-kit` | [`.cursor-plugin/`](.cursor-plugin/) |
+| Codex | `codex plugin marketplace add azure/documentdb-agent-kit` | `codex plugin update documentdb` | [`.codex-plugin/`](.codex-plugin/) + [`.agents/plugins/marketplace.json`](.agents/plugins/marketplace.json) |
+| Gemini CLI | `gemini extensions install https://github.com/Azure/documentdb-agent-kit` | `gemini extensions update documentdb-agent-kit` | [`gemini-extension.json`](gemini-extension.json) + [`GEMINI.md`](GEMINI.md) |
+| GitHub Copilot CLI | `/plugin install https://github.com/Azure/documentdb-agent-kit.git` | `/plugin update https://github.com/Azure/documentdb-agent-kit.git` | this `AGENTS.md` + [`mcp.json`](mcp.json) |
+-->
+
+All paths share the same `skills/` tree. Claude / Cursor / Codex / Copilot also share the root [`mcp.json`](mcp.json); Gemini inlines the same MCP config in its own manifest.
+
+Skills are snapshotted at install time and do **not** auto-update — re-run the relevant update command above to pull new skills or fixes from `main`. The bundled MCP server runs via `npx -y documentdb-mcp-server` and refreshes on every agent restart (subject to npm cache).
+
+See [`README.md`](README.md) for the full per-tool install + configuration walkthrough and [`docs/SKILLS.md`](docs/SKILLS.md) for the capability catalog.
 

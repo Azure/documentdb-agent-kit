@@ -1,0 +1,14 @@
+{
+  "name": "azure-documentdb",
+  "owner": {
+    "name": "Azure",
+    "url": "https://azure.microsoft.com"
+  },
+  "plugins": [
+    {
+      "name": "documentdb",
+      "source": "./",
+      "description": "Official Claude plugin for Azure DocumentDB (MongoDB-compatible) — MCP server + skills."
+    }
+  ]
+}

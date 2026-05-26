@@ -152,7 +152,7 @@ Now that subscription, RG, and location are fixed, ask for cluster-specific valu
 | Admin password | — | 8–128 chars; store in Key Vault — **never commit** |
 | Compute tier | **M30** (prod default) / `M10`–`M20` (dev) | Full list: `M10`, `M20`, `M30`, `M40`, `M50`, `M60`, `M80`, `M200` |
 | Storage per shard (GiB) | **128** (prod default) / `32` (dev) | |
-| Shard count | `1` (sufficient up to TB scale — see `documentdb-cluster-sharding`) | |
+| Shard count | `1` (sufficient up to TB scale) | |
 | High availability | **ZoneRedundantPreferred** (prod default) / `SameZone` / `Disabled` (dev) | Non-Disabled values require M30+ |
 | MongoDB server version | `8.0` | |
 | Public network access | Default `Enabled` with firewall rules | Or disable and attach Private Endpoint (see `documentdb-security`) |
@@ -331,6 +331,5 @@ Confirm with the user before running — this removes everything in the resource
 - `documentdb-local-deployment` — Docker / Compose for running DocumentDB locally
 - `documentdb-connection` — connection-string tuning after the cluster exists
 - `documentdb-security` — Private Endpoint, Entra RBAC, CMK
-- `documentdb-cluster-sharding` — M-tier selection, shard-key design at TB scale
 - `documentdb-high-availability` — HA, cross-region replica, SLA tiers
 - `documentdb-monitoring` — diagnostic settings, slow-query logs

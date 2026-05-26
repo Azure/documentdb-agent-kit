@@ -37,9 +37,16 @@ Borrow from pool → Execute operation → Return to pool → Prune idle connect
 exceeding `maxIdleTimeMS`.
 
 **Synchronous vs Asynchronous Drivers:**
-- **Synchronous** (PyMongo, Java sync): Thread blocks; pool size often matches
-  thread pool size
-- **Asynchronous** (Node.js, Motor): Non-blocking I/O; smaller pools suffice
+- **Synchronous** (PyMongo `MongoClient`, Java sync): Thread blocks; pool size
+  often matches thread pool size
+- **Asynchronous** (Node.js, PyMongo `AsyncMongoClient`): Non-blocking I/O;
+  smaller pools suffice
+
+> **Python async note:** Use PyMongo's native `AsyncMongoClient` (PyMongo
+> 4.9+), **not** Motor. MongoDB announced Motor's deprecation in May 2024 in
+> favor of PyMongo's built-in async API; Motor receives only critical fixes
+> through May 2026 and is end-of-life after that. New Python async code on
+> Azure DocumentDB should import `from pymongo import AsyncMongoClient`.
 
 **Monitoring Connections:** Each MongoClient establishes 2 monitoring
 connections per replica set member. Formula:

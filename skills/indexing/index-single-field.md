@@ -4,9 +4,11 @@
 
 ## Why it matters
 
-A single-field index is the simplest useful index — one field, one traversable B-tree. Get this right first: most "slow query" problems are a single missing single-field index, not an exotic index type. For single-field indexes, direction (`1` vs `-1`) is largely cosmetic — Azure DocumentDB can traverse a single-field index in either direction, so `createIndex({ price: 1 })` serves both `.sort({ price: 1 })` and `.sort({ price: -1 })`.
+A single-field index is the simplest useful index — one field, indexed so the engine can jump directly to matching documents instead of scanning the whole collection. Get this right first: most "slow query" problems are a single missing single-field index, not an exotic index type. For single-field indexes, direction (`1` vs `-1`) is largely cosmetic — Azure DocumentDB can traverse a single-field index in either direction, so `createIndex({ price: 1 })` serves both `.sort({ price: 1 })` and `.sort({ price: -1 })`.
 
 Azure DocumentDB allows up to **64 single-field indexes per collection** by default (extendable to 300 on request). Only `_id` is created automatically.
+
+> **`_id` vs regular indexes:** The `_id` index is a **B-tree**, created automatically, and cannot be dropped. For sharded collections the `_id` key is composite — it includes a hash of the shard key. All other indexes created via `createIndex` are **RUM** indexes; the exception is geospatial indexes (`2dsphere`, `2d`), which are **GiST** indexes.
 
 ## When to reach for a single-field index
 
@@ -50,11 +52,16 @@ db.users.createIndex({ email: 1 }, { unique: true });
 // Optional unique field — only enforce uniqueness on documents that have it
 db.users.createIndex({ phone: 1 }, { unique: true, sparse: true });
 
-// Partial index: only index "published" rows the app actually queries
+// Partial index: only index "published" rows the app actually queries - reduces index size and write overhead
 db.products.createIndex(
   { name: 1 },
   { partialFilterExpression: { published: true } }
 );
+// ✅ Served by the partial index — query filter includes published:true
+db.products.find({ name: "Widget Pro", published: true });
+db.products.find({ name: "Widget Pro", published: true }).sort({ name: 1 });
+// ❌ Not served — omitting published:true forces a COLLSCAN (index cannot be used)
+db.products.find({ name: "Widget Pro" });
 ```
 
 Index nested fields with dot notation:

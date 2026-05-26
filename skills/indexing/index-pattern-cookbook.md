@@ -31,21 +31,56 @@ db.orders.find({ status: "shipped", region: "US" }).sort({ createdAt: -1 });
 db.orders.createIndex({ status: 1, region: 1, createdAt: -1 });
 ```
 
-### 3. Equality + Range
+**Selectivity ordering:** Among multiple `$eq` filters, put the field with the fewest matching documents first. This narrows the candidate set earlier and reduces work for subsequent filters.
+
+```javascript
+// Collection: 1M orders, 10 customers (100K each), 2 statuses (500K each)
+db.orders.find({ customerId: "cust1", status: "active" });
+
+// ✅ Correct: customerId first (100K candidates → filters to ~50K)
+db.orders.createIndex({ customerId: 1, status: 1 });
+
+// ❌ Wrong: status first (500K candidates → filters to ~50K)
+db.orders.createIndex({ status: 1, customerId: 1 });
+```
+
+General selectivity guidance (typical defaults — actual cardinality depends on the collection, so sanity-check with a quick distinct-count):
+- **High** (few matches): `userId`, `orderId`, `email`, `SKU`
+- **Medium**: `customerId`, `productId`
+- **Low** (many matches): `status`, `category`, `country`
+
+### 3. Mixed equality — `$eq` before `$in`
+
+When some filters are exact equality (`$eq`) and others are `$in`, put exact equality fields first. `$in` behaves like a bounded multi-equality / range; under ESR, place it after pure equality and (when present) the sort field.
+
+```javascript
+db.orders.find({
+  customerId: "cust123",                         // exact equality
+  status: { $in: ["pending", "processing"] }     // $in — place after $eq
+}).sort({ createdAt: -1 });
+
+// ✅ Correct: $eq → sort → $in
+db.orders.createIndex({ customerId: 1, createdAt: -1, status: 1 });
+
+// ❌ Wrong: $in first
+db.orders.createIndex({ status: 1, customerId: 1, createdAt: -1 });
+```
+
+### 4. Equality + Range
 
 ```javascript
 db.orders.find({ status: "open", total: { $gt: 100 } });
 db.orders.createIndex({ status: 1, total: 1 });   // equality first, range last
 ```
 
-### 4. Range + Sort (sort on same field as range)
+### 5. Range + Sort (sort on same field as range)
 
 ```javascript
 db.orders.find({ createdAt: { $gte: ISODate("2024-01-01") } }).sort({ createdAt: -1 });
 db.orders.createIndex({ createdAt: -1 });        // one field serves both
 ```
 
-### 5. Range + Sort (sort on different field)
+### 6. Range + Sort (sort on different field)
 
 ```javascript
 // This shape cannot avoid a SORT without careful design.
@@ -60,7 +95,7 @@ db.orders.find({ status: "open", total: { $gt: 100 } }).sort({ createdAt: -1 });
 db.orders.createIndex({ status: 1, createdAt: -1, total: 1 });  // ESR
 ```
 
-### 6. Equality + Sort + Range
+### 7. Equality + Sort + Range
 
 ```javascript
 db.orders.find({ status: "shipped", region: "US", total: { $gt: 100 } })
@@ -69,7 +104,7 @@ db.orders.createIndex({ status: 1, region: 1, createdAt: -1, total: 1 });
 //                     └── equality ──┘        └ sort ┘     └ range ┘
 ```
 
-### 7. Array containment
+### 8. Array containment
 
 ```javascript
 db.products.find({ tags: "wireless" });
@@ -81,27 +116,61 @@ db.products.find({ category: "Electronics", tags: "wireless" })
 db.products.createIndex({ category: 1, price: 1, tags: 1 });
 ```
 
-### 8. Nested-field filter
+**Partial indexes on array fields.** When an array field can grow large, two distinct patterns use a `partialFilterExpression` for different reasons:
+
+*Multikey reduction* — restrict the multikey index on the array itself to the subset of documents you actually query, so writes to documents outside the subset don't pay the per-element indexing cost.
+
+```javascript
+// orders.items can have 100+ elements — only multikey-index open orders.
+db.orders.createIndex(
+  { items: 1 },
+  {
+    partialFilterExpression: { status: "open" },
+    name: "idx_items_open"
+  }
+);
+// ✅ Served — query filter includes status:"open" (matches the partial expression)
+db.orders.find({ status: "open", items: "SKU-123" });
+// ❌ Not served — without status:"open", planner can't use the partial index (COLLSCAN)
+db.orders.find({ items: "SKU-123" });
+```
+
+*Empty-array enumeration* — find documents whose array is empty without paying the cost of `$size: 0` (which can't use a regular multikey index and forces a scan). A partial index keyed on `_id` and filtered to the empty-array predicate gives you a cheap, direct enumeration.
+
+```javascript
+// Fast lookup for "orders with no items" without scanning the collection.
+db.orders.createIndex(
+  { _id: 1 },
+  {
+    partialFilterExpression: { items: { $eq: [] } },
+    name: "idx_empty_orders"
+  }
+);
+// ✅ Served — query filter matches the partial expression exactly
+db.orders.find({ items: { $eq: [] } });
+```
+
+### 9. Nested-field filter
 
 ```javascript
 db.users.find({ "address.city": "Seattle" });
 db.users.createIndex({ "address.city": 1 });
 ```
 
-### 9. Uniqueness constraint + lookup
+### 10. Uniqueness constraint + lookup
 
 ```javascript
 db.users.createIndex({ email: 1 }, { unique: true });  // lookup + enforcement
 ```
 
-### 10. Optional-field uniqueness
+### 11. Optional-field uniqueness
 
 ```javascript
 // Only enforce uniqueness on documents that actually have phone
 db.users.createIndex({ phone: 1 }, { unique: true, sparse: true });
 ```
 
-### 11. Filtered subset ("only active / published rows")
+### 12. Filtered subset ("only active / published rows")
 
 ```javascript
 db.products.createIndex(
@@ -112,7 +181,7 @@ db.products.createIndex(
 db.products.find({ name: "Laptop Pro", published: true });
 ```
 
-### 12. Case-insensitive lookup
+### 13. Case-insensitive lookup
 
 ```javascript
 db.users.createIndex(
@@ -123,7 +192,7 @@ db.users.find({ username: "ALICE" })
         .collation({ locale: "en", strength: 2 });  // must match index collation
 ```
 
-### 13. Geospatial
+### 14. Geospatial
 
 ```javascript
 db.stores.createIndex({ category: 1, location: "2dsphere" });
@@ -134,7 +203,7 @@ db.stores.find({
 ```
 See [index-2dsphere-geospatial](index-2dsphere-geospatial.md).
 
-### 14. Full-text (keyword) search
+### 15. Full-text (keyword) search
 
 Prefer Azure DocumentDB's dedicated search index (`createSearchIndexes` + `$search`) — see [index-text-prefer-textsearch](index-text-prefer-textsearch.md) and the `full-text-search/` rules.
 
@@ -162,14 +231,14 @@ db.products.aggregate([
 ]);
 ```
 
-### 15. TTL / self-expiring documents
+### 16. TTL / self-expiring documents
 
 ```javascript
 db.sessions.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 // Documents removed ~60s after expiresAt passes (see index-ttl-expiry).
 ```
 
-### 16. Vector (similarity) search
+### 17. Vector (similarity) search
 
 See the `vector-search/` rules:
 - [vector-choose-index-type](../vector-search/vector-choose-index-type.md)
