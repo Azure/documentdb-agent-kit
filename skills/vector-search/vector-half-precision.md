@@ -44,6 +44,8 @@ db.products.createIndex(
 
 Run an A/B recall check against the prior fp32 index with a representative query set; for most production text embeddings the delta is well under 1%.
 
+> When creating this index from Node.js, PyMongo, or .NET driver code, issue it via `db.command({ createIndexes, ... })` rather than `collection.createIndex(...)` — the typed wrappers strip `cosmosSearchOptions`. See [vector-create-diskann-index](vector-create-diskann-index.md) for the driver-safe shape.
+
 ## References
 
 - [Half-Precision Vector Indexing](https://learn.microsoft.com/azure/documentdb/half-precision)
