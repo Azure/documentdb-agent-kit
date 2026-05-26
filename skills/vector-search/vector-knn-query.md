@@ -20,7 +20,7 @@ Or post-filtering that drops 90% of your top-k before the user sees anything:
 
 ```javascript
 db.products.aggregate([
-  { $search: { cosmosSearch: { path: "embedding", query: qv, k: 10 } } },
+  { $search: { cosmosSearch: { path: "embedding", vector: qv, k: 10 } } },
   { $match: { inStock: true, price: { $lte: 100 } } } // may leave 1-2 results
 ]);
 ```
@@ -37,7 +37,7 @@ const hits = await db.products.aggregate([
     $search: {
       cosmosSearch: {
         path: "embedding",
-        query: queryVector,
+        vector: queryVector,
         k: 10,
         lSearch: 100, // higher than k, boosts recall
         filter: {

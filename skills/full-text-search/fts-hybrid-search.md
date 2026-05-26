@@ -68,7 +68,7 @@ const kwHits = await db.products.aggregate([
 // Vector arm
 const qv = await embed(userQuery);
 const vecHits = await db.products.aggregate([
-  { $search: { cosmosSearch: { path: "embedding", query: qv, k: 50 } } },
+  { $search: { cosmosSearch: { path: "embedding", vector: qv, k: 50 } } },
   { $project: { _id: 1, vec: { $meta: "searchScore" } } }
 ]).toArray();
 
