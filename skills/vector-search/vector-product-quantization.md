@@ -50,6 +50,8 @@ db.products.createIndex(
 
 Validate recall after enabling PQ with a held-out query set; raise `lSearch` at query time to recover any recall lost to quantization.
 
+> When creating this index from Node.js, PyMongo, or .NET driver code, issue it via `db.command({ createIndexes, ... })` rather than `collection.createIndex(...)` — the typed wrappers strip `cosmosSearchOptions`. See [vector-create-diskann-index](vector-create-diskann-index.md) for the driver-safe shape.
+
 ## References
 
 - [Product Quantization for DiskANN in Azure DocumentDB](https://learn.microsoft.com/azure/documentdb/product-quantization)
