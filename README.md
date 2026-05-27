@@ -106,7 +106,8 @@ curl -fsSL https://raw.githubusercontent.com/Azure/documentdb-agent-kit/main/ins
 
 ```powershell
 # Windows
-irm https://raw.githubusercontent.com/Azure/documentdb-agent-kit/main/install.ps1 | iex -ArgumentList '-Uninstall','-Yes'
+irm https://raw.githubusercontent.com/Azure/documentdb-agent-kit/main/install.ps1 -OutFile $env:TEMP\install.ps1
+& $env:TEMP\install.ps1 -Uninstall -Yes
 ```
 
 Removes the kit's `DocumentDB` MCP entry from every client, removes skill
