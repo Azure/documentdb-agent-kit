@@ -549,8 +549,12 @@ function Invoke-Install {
         }
     }
     Write-Host ""
-    Write-Host "Uninstall: irm https://raw.githubusercontent.com/Azure/documentdb-agent-kit/main/install.ps1 | iex -ArgumentList '-Uninstall'"
-    Write-Host "       or: .\install.ps1 -Uninstall"
+    # `iex` does not accept -ArgumentList, so the irm | iex pipe form can't
+    # take flags. Show the download-then-invoke form which actually works.
+    Write-Host "Uninstall (one-liner):"
+    Write-Host "    irm https://raw.githubusercontent.com/Azure/documentdb-agent-kit/main/install.ps1 -OutFile `$env:TEMP\install.ps1; & `$env:TEMP\install.ps1 -Uninstall -Yes"
+    Write-Host "Or, from a local checkout:"
+    Write-Host "    .\install.ps1 -Uninstall"
 }
 
 function Invoke-Uninstall {

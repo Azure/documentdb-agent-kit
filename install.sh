@@ -613,7 +613,22 @@ main() {
     done <<< "$clients_str"
   fi
   log ""
-  log "Uninstall: $0 --uninstall"
+  # When invoked via `curl ... | bash -s -- ...`, $0 is "bash" / "-bash" /
+  # "/usr/bin/bash" — not a script path — so suggesting "$0 --uninstall" prints
+  # the misleading "bash --uninstall". Detect that and emit the curl one-liner
+  # instead. When run as a local script, show the script-path form.
+  case "$0" in
+    bash|-bash|*/bash|sh|-sh|*/sh)
+      log "Uninstall: curl -fsSL https://raw.githubusercontent.com/Azure/documentdb-agent-kit/main/install.sh | bash -s -- --uninstall --yes"
+      ;;
+    *)
+      if [ -f "$0" ]; then
+        log "Uninstall: $0 --uninstall"
+      else
+        log "Uninstall: curl -fsSL https://raw.githubusercontent.com/Azure/documentdb-agent-kit/main/install.sh | bash -s -- --uninstall --yes"
+      fi
+      ;;
+  esac
 }
 
 run_uninstall() {
