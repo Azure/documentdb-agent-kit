@@ -25,26 +25,139 @@ the [`microsoft/documentdb-mcp`](https://github.com/microsoft/documentdb-mcp)
 server into every detected MCP client. This is the recommended path today —
 the per-agent plugin/extension marketplaces below are still being published.
 
-### One-liner (recommended)
+### Step-by-step: macOS
 
-**macOS / Linux:**
+**1. Prerequisites**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Azure/documentdb-agent-kit/main/install.sh | bash -s -- --uri "<your-connection-string>"
+# git
+xcode-select --install      # if not already installed
+# Node.js 20+ (Homebrew)
+brew install node@20 && brew link --overwrite --force node@20
+
+# Verify
+git --version
+node --version    # must be v20.x or higher
 ```
 
-**Windows (PowerShell):**
+**2. Get your DocumentDB connection string**
+
+- **Azure DocumentDB:** Azure portal → cluster → *Settings → Connection strings*. Shape:
+  `mongodb+srv://<user>:<password>@<cluster>.mongocluster.cosmos.azure.com/?tls=true&authMechanism=SCRAM-SHA-256`.
+  URL-encode special characters in the password.
+- **Local DocumentDB / MongoDB:** `mongodb://localhost:27017`
+- **Atlas / self-hosted:** your standard MongoDB URI.
+
+> ⚠️ Keep the connection string in your shell only — don't paste it into any AI agent chat.
+
+**3. Run the installer**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Azure/documentdb-agent-kit/main/install.sh \
+  | bash -s -- --uri "<your-connection-string>" --yes
+```
+
+Or with the URI in an env var:
+
+```bash
+export DOCUMENTDB_URI="<your-connection-string>"
+curl -fsSL https://raw.githubusercontent.com/Azure/documentdb-agent-kit/main/install.sh | bash -s -- --yes
+```
+
+**4. Fully quit and reopen each configured client.** Closing the window isn't enough — MCP config is read only at process start.
+
+**5. Verify** (see [Verify it worked](#verify-it-worked) below).
+
+### Step-by-step: Linux
+
+**1. Prerequisites**
+
+```bash
+# git
+sudo apt install -y git           # Debian/Ubuntu
+# sudo dnf install -y git         # Fedora/RHEL
+# sudo pacman -S git              # Arch
+
+# Node.js 20+ — distro packages are usually too old. Pick one:
+
+# Option A: NodeSource (Debian/Ubuntu/Fedora/RHEL)
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# Option B: nvm (any distro, recommended for dev machines)
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+exec $SHELL
+nvm install 20 && nvm use 20
+
+# Verify
+git --version
+node --version    # must be v20.x or higher
+npm --version
+```
+
+**2. Get your DocumentDB connection string** — same as macOS above.
+
+**3. Run the installer**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Azure/documentdb-agent-kit/main/install.sh \
+  | bash -s -- --uri "<your-connection-string>" --yes
+```
+
+> The `bash -s --` part is **required** when piping through `curl` — it tells bash that everything after is an argument to the script, not to bash itself.
+
+**4. Fully quit and reopen each configured client.** For terminal clients (Copilot CLI, Gemini CLI), exit and reopen the shell.
+
+**5. Verify** (see [Verify it worked](#verify-it-worked) below).
+
+> Don't `sudo` the installer — it only writes user-scoped configs. Running as root will create files owned by root in your home directory.
+
+### Step-by-step: Windows
+
+**1. Prerequisites**
+
+Open **PowerShell** (Windows PowerShell 5.1 or pwsh 7+) — as your normal user, not admin:
 
 ```powershell
-$env:DOCUMENTDB_URI = "<your-connection-string>"
+# git
+winget install --id Git.Git
+
+# Node.js 20+
+winget install OpenJS.NodeJS.LTS
+
+# Verify (open a new PowerShell window first to refresh PATH)
+git --version
+node --version    # must be v20.x or higher
+$PSVersionTable.PSVersion   # 5.1+ or 7+
+```
+
+*(Optional but recommended)* Enable **Developer Mode** so the installer can use symlinks instead of copying files: *Settings → Privacy & security → For developers → Developer Mode = On*. Without it the installer falls back to copying — that still works, just less elegant for skill updates.
+
+**2. Get your DocumentDB connection string** — same as macOS above.
+
+**3. Run the installer**
+
+```powershell
+$env:DOCUMENTDB_URI = "<paste-your-connection-string-here>"
 irm https://raw.githubusercontent.com/Azure/documentdb-agent-kit/main/install.ps1 | iex
 ```
 
-Local-dev quickstart (no Azure cluster needed, assuming a running documentdb-local container):
+If you get `running scripts is disabled on this system`, run this once in the same window and re-run:
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/Azure/documentdb-agent-kit/main/install.sh | bash -s -- --uri "mongodb://localhost:27017"
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 ```
+
+**To pass flags** (`-Yes`, `-DryRun`, `-Uninstall`, etc.), `irm | iex` won't work — download then invoke:
+
+```powershell
+irm https://raw.githubusercontent.com/Azure/documentdb-agent-kit/main/install.ps1 -OutFile $env:TEMP\install.ps1
+& $env:TEMP\install.ps1 -Uri "<paste-your-connection-string-here>" -Yes
+```
+
+**4. Fully quit and reopen each configured client.** Use the system tray / Task Manager — closing the window isn't enough.
+
+**5. Verify** (see [Verify it worked](#verify-it-worked) below).
 
 ### What gets installed
 
@@ -67,11 +180,13 @@ Existing entries in each client's config are preserved — the installer only
 adds (or updates) a single `DocumentDB` entry. A timestamped `.bak` backup is
 written before every JSON edit.
 
-### Requirements
+### Requirements summary
 
 - `git`
 - Node.js 20+ and `npm` (the MCP server is a Node app, built from source on
   install). `--skills-only` mode skips Node requirements.
+
+See the per-OS step-by-step sections above for install commands.
 
 ### Common flags
 
@@ -113,6 +228,23 @@ irm https://raw.githubusercontent.com/Azure/documentdb-agent-kit/main/install.ps
 Removes the kit's `DocumentDB` MCP entry from every client, removes skill
 symlinks, and deletes `~/.documentdb-agent-kit/`. Other MCP servers and your
 non-kit skills are left untouched.
+
+### Troubleshooting
+
+| Symptom | Platform | Fix |
+|---|---|---|
+| `bash: line N: --uri: command not found` | macOS / Linux | Missing `bash -s --` between `curl ... \|` and the flags. |
+| `running scripts is disabled on this system` | Windows | `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` in the same PowerShell session, then re-run. |
+| `Invoke-Expression: A parameter cannot be found that matches parameter name 'ArgumentList'` | Windows | `irm \| iex` doesn't accept flags. Use the `irm -OutFile … ; & $env:TEMP\install.ps1 -Yes` pattern. |
+| `npm: Unknown command: "pm"` during MCP build | Windows | Old installer bug — re-fetch the latest `install.ps1` (fixed in this kit). |
+| `node: command not found` after install | all | Open a new terminal to refresh `PATH`. With nvm, also run `nvm use 20`. |
+| `npm: not found` but Node.js is installed | Linux (Debian/Ubuntu) | The distro `nodejs` package sometimes omits npm — `sudo apt install -y npm`, or use nvm. |
+| `symlink failed for <skill>; copying instead` warnings | Windows | Harmless. Enable Developer Mode if you want real symlinks. |
+| Agent: `connection_profile "default" not found` | all | Tell the agent to use profile `default` explicitly, or pass `--profile <name>` / `-Profile <name>` to the installer. |
+| Agent: `AUTH_REQUIRED is true ...` or server exits at launch | all | Re-run the installer — it sets `AUTH_REQUIRED=false` + `ALLOW_UNAUTHENTICATED_STDIO=true`, required for local stdio. This only disables the MCP-server's Entra-JWT *transport* gate; your cluster's SCRAM/Entra auth is unaffected. |
+| TLS error against Azure | all | Confirm `tls=true` is in the URI and the password is URL-encoded. |
+| Connection timeout to Azure | all | Azure portal → cluster → *Networking* → add your client IP to the firewall allowlist. |
+| `Permission denied` writing into `~/.claude.json` | Linux / macOS | Don't `sudo` the installer — it writes user-scoped configs. Run as your normal user. |
 
 ### Manual install (no script)
 
