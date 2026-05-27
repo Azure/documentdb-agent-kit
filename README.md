@@ -1,5 +1,14 @@
 # documentdb-agent-kit
 
+[![Status: Public Preview](https://img.shields.io/badge/Status-Public%20Preview-orange?style=flat)](https://azure.microsoft.com/support/legal/preview-supplemental-terms/)
+
+> [!IMPORTANT]
+> **Public Preview.** This project is currently in Public Preview. APIs,
+> configuration, on-disk layout, skill contents, and installer behavior may
+> change in breaking ways before General Availability. There is no SLA.
+> Provided "as-is"; see the [Azure Preview Supplemental Terms](https://azure.microsoft.com/support/legal/preview-supplemental-terms/).
+> Not recommended for production workloads.
+
 A bundle of agent skills + an MCP server for **Azure DocumentDB (MongoDB-compatible)** — the fully managed Azure service built on the open-source [DocumentDB](https://github.com/documentdb/documentdb) project (Postgres-backed, 99.03% MongoDB-compatible).
 
 Skills follow the [Agent Skills](https://agentskills.io/) format and the kit ships with plugin manifests for Claude Code, Cursor, Codex, Gemini CLI, and GitHub Copilot.

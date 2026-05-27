@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-05-27 — Mark project as Public Preview
+
+Add a Public Preview status badge to `README.md` and a top-of-document
+IMPORTANT admonition pointing at the
+[Azure Preview Supplemental Terms](https://azure.microsoft.com/support/legal/preview-supplemental-terms/).
+Add a matching status note to `AGENTS.md` so agents reading the kit
+relay the preview status to users before committing kit-installed
+configs into production-shaped surfaces. No functional changes; this
+clarifies that the kit (like the upstream `microsoft/documentdb-mcp`
+server it depends on) is pre-GA, has no SLA, is provided "as-is", and
+may change in breaking ways before General Availability.
+
 ## 2026-05-27 — Track upstream rename: `ALLOW_UNAUTHENTICATED_STDIO` → `TRUST_LOCAL_STDIO`
 
 Upstream [microsoft/documentdb-mcp#83](https://github.com/microsoft/documentdb-mcp/pull/83)

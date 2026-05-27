@@ -2,6 +2,14 @@
 
 This repository is an **Agent Skills** pack for **Azure DocumentDB (with MongoDB compatibility)** — the managed Azure service built on the open-source [DocumentDB](https://github.com/microsoft/documentdb) project. Every skill targets Azure DocumentDB specifically; rules call out DocumentDB features that differ from community MongoDB (`cosmosSearch` vector indexes, `createSearchIndexes` full-text search, cluster M-tiers, Entra RBAC, CMK, etc.).
 
+> **Status: Public Preview.** This kit and its upstream MCP server are
+> pre-GA; rule contents, skill shapes, installer behavior, and the MCP
+> tool surface may change in breaking ways. No SLA. See the
+> [Azure Preview Supplemental Terms](https://azure.microsoft.com/support/legal/preview-supplemental-terms/).
+> When acting on the kit, agents should call out this status to the user
+> if they're about to commit kit-installed configs into anything that
+> looks production-shaped.
+
 ## How agents should use this kit
 
 ### Skill routing (do this first)
