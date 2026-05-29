@@ -9,7 +9,7 @@
       "env": {
         "TRANSPORT": "stdio",
         "AUTH_REQUIRED": "false",
-        "ALLOW_UNAUTHENTICATED_STDIO": "true",
+        "TRUST_LOCAL_STDIO": "true",
         "CONNECTION_PROFILES": "${DOCUMENTDB_CONNECTION_PROFILES}",
         "ENABLE_READ_TOOLS": "true",
         "ENABLE_WRITE_TOOLS": "false",

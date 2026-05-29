@@ -1,335 +1,226 @@
 ---
 name: documentdb-mcp-setup
-description: Guide users through configuring the DocumentDB MCP server for Azure DocumentDB. Use this skill when a user has the DocumentDB MCP server installed but hasn't configured the required environment variables, or when they ask about connecting to Azure DocumentDB and don't have the credentials set up.
+description: Guide users through installing and configuring the DocumentDB MCP server for Azure DocumentDB. Use this skill when a user wants to wire the DocumentDB MCP server into an agentic client (Claude Code, Claude Desktop, Cursor, Copilot CLI, Gemini CLI, VS Code) and define a `CONNECTION_PROFILES` entry, or when they hit MCP connection / auth / profile errors.
 ---
 
 # DocumentDB MCP Server Setup
 
-This skill guides users through configuring the DocumentDB MCP server for use
-with an agentic client, targeting Azure DocumentDB.
+This skill guides users through wiring the
+[`microsoft/documentdb-mcp`](https://github.com/microsoft/documentdb-mcp)
+server into an agentic client and pointing it at Azure DocumentDB (or another
+MongoDB-compatible endpoint).
 
-## Overview
+The DocumentDB MCP server is **stateless** and **administrator-controlled**:
+backend connection details live in a `CONNECTION_PROFILES` JSON map defined in
+the MCP client's config. Tools never accept a connection string as a runtime
+argument — they reference a named profile via `connection_profile`.
 
-The DocumentDB MCP server requires a connection string to your Azure DocumentDB
-cluster. Users have three options:
-
-1. **Azure DocumentDB Connection String** (Option A): Direct connection to
-   an Azure DocumentDB cluster
-   - Recommended for most users
-   - Requires `DOCUMENTDB_URI` environment variable
-   - Connection string from Azure portal
-
-2. **Local MongoDB** (Option B): Connect to a local MongoDB instance for
-   development
-   - Best for local testing — minimal configuration required
-   - Uses default `mongodb://localhost:27017`
-   - No Azure credentials needed
-
-3. **Custom MongoDB-compatible endpoint** (Option C): Connect to any
-   MongoDB-compatible database
-   - For self-hosted MongoDB, other DocumentDB-compatible services, or
-     MongoDB Atlas
-   - Requires `DOCUMENTDB_URI` environment variable with custom connection string
-
-This is an interactive step-by-step guide. The agent detects the user's
-environment and provides tailored instructions.
-
-## Safety: Never Receive Credentials In-Chat
+## Safety: never receive credentials in chat
 
 The DocumentDB connection string is a **secret** — it contains a username and
 password that grant database access. The agent MUST follow these rules:
 
-1. **Never ask the user to paste a connection string, password, token, or any
-   other credential into the chat.** Always instruct the user to write the
-   value directly into a local file (`~/.documentdb-env` or a PowerShell
-   profile) themselves.
+1. **Never ask the user to paste a connection string, password, or token into
+   the chat.** Always instruct the user to add the value directly to their
+   local MCP config file themselves (or run the bundled installer, which
+   prompts via stdin instead of chat).
 2. **Never read, echo, log, or repeat back a credential** the user pasted by
    mistake. If the user pastes one anyway, respond with: "I won't process that
-   value — please delete it from the chat history and add it directly to
-   `~/.documentdb-env` instead," and continue with placeholder instructions
-   only. The agent itself cannot remove messages it has already received —
-   only the user can delete the message from their chat history.
-3. **Never run a shell command that would print a credential to stdout.** All
-   verification commands in this skill mask the value (e.g. `[set]`).
+   value — please delete it from the chat history and add it directly to your
+   client's MCP config instead," and continue with placeholders only. The
+   agent itself cannot remove messages it has already received — only the
+   user can delete the message from their chat history.
+3. **Never run a shell command that would print a credential to stdout.**
 4. **Never write the credential to any file the agent itself creates or
-   edits.** The agent only writes the *placeholder* `[USER]:[PASSWORD]@...`
-   (square brackets defeat the `mongodb://[^:]+:[^@]+@` secret-scanner
-   regex); the user replaces it locally.
+   edits.** The agent only writes placeholder `[USER]:[PASSWORD]@...` (square
+   brackets defeat the `mongodb://[^:]+:[^@]+@` secret-scanner regex); the
+   user replaces it locally.
 5. **Never include a credential in a generated explanation, summary, commit
    message, or example.** Use `<redacted>` if you must reference its position.
 
 If any step below appears to require a credential value, treat it as a
 placeholder for the user to fill in locally.
 
-## Step 1: Check Existing Configuration
+## Fastest path: bundled installer
 
-Before starting the setup, check if the user already has the required
-environment variables configured.
-
-Run this command to check for existing configuration (masking values to avoid
-exposing credentials):
+If the user wants the quickest path and is willing to run a script, point them
+at the kit's installer, which installs both this skill pack and the MCP server
+into every detected client in one command:
 
 ```bash
-env | grep "^DOCUMENTDB_URI\|^TRANSPORT\|^HOST\|^PORT" | sed 's/DOCUMENTDB_URI=.*/DOCUMENTDB_URI=[set]/'
+# macOS / Linux
+curl -fsSL https://raw.githubusercontent.com/Azure/documentdb-agent-kit/main/install.sh | bash
+
+# Windows (PowerShell)
+irm https://raw.githubusercontent.com/Azure/documentdb-agent-kit/main/install.ps1 | iex
 ```
 
-**Interpretation:**
+The installer prompts for a connection string, writes it as the `default`
+profile, and configures all detected clients. The rest of this skill covers
+the manual path (and is also the right reference when the installer fails or
+the user wants to customize).
 
-- If `DOCUMENTDB_URI` is set → connection is already configured
-- If `TRANSPORT` is set → transport mode is configured
-- If neither is set → proceed with full setup
+## Manual setup overview
 
-**Partial Configuration Handling:**
+Setup is per-client. For each client the user has installed:
 
-- User already has `DOCUMENTDB_URI` set and just wants to change transport →
-  skip to Step 4
-- User wants to switch connection targets → proceed with Steps 2–5
-- User wants to update credentials → skip to Step 5 (profile editing
-  instructions)
+1. Make sure Node.js 20+ is available (the MCP server runs on Node).
+2. Find that client's MCP config file.
+3. Add a `DocumentDB` server entry that launches the upstream MCP server and
+   passes `CONNECTION_PROFILES` (and `TRANSPORT=stdio` + `AUTH_REQUIRED=false`
+   + `TRUST_LOCAL_STDIO=true` for local stdio use).
+4. Restart the client.
 
-## Step 2: Present Configuration Options
-
-If no valid configuration exists, present the options:
-
-**Azure DocumentDB (Option A)** — Best for:
-
-- Production and development with Azure DocumentDB
-- Full MongoDB wire protocol compatibility
-- Managed database with Azure integration
-
-**Local MongoDB (Option B)** — Best for:
-
-- Local development and testing without cloud setup
-- Fastest setup, no credentials required
-- Just uses `mongodb://localhost:27017`
-
-**Custom Endpoint (Option C)** — Best for:
-
-- Self-hosted MongoDB deployments
-- MongoDB Atlas or other MongoDB-compatible services
-- Non-standard connection configurations
-
-Ask the user which option they'd like to proceed with.
-
-## Step 3a: Azure DocumentDB Setup
-
-If the user chooses Option A:
-
-### 3a.1: Explain How to Find the Connection String
-
-1. Go to the [Azure portal](https://portal.azure.com)
-2. Navigate to your Azure DocumentDB cluster
-3. In the left menu, select **Settings** → **Connection strings**
-4. Copy the connection string — its shape will be:
-   `mongodb+srv://[USER]:[PASSWORD]@<cluster-name>.mongocluster.cosmos.azure.com/?tls=true&authMechanism=SCRAM-SHA-256`
-5. The user fills in their own username and password **locally** (see Step 5).
-   **Do not paste the completed connection string into this chat.**
-
-**Expected shapes (placeholders only — do not substitute real values here):**
-
-- `mongodb+srv://[USER]:[PASSWORD]@cluster.mongocluster.cosmos.azure.com/?tls=true&authMechanism=SCRAM-SHA-256`
-- `mongodb://[USER]:[PASSWORD]@cluster.mongocluster.cosmos.azure.com:10255/?tls=true&authMechanism=SCRAM-SHA-256`
-
-**Important**: Azure DocumentDB requires TLS. The user should ensure
-`tls=true` is in their connection string when they save it locally.
-
-Proceed to Step 4 (Configure Transport Mode).
-
-## Step 3b: Local MongoDB Setup
-
-If the user chooses Option B:
-
-### 3b.1: Verify Local MongoDB is Running
+## Step 1: Confirm prerequisites
 
 ```bash
-mongosh --eval "db.runCommand({ping: 1})" 2>/dev/null || echo "MongoDB not reachable"
+node --version   # must be >= 20
+git --version    # required by `npx -y github:microsoft/documentdb-mcp`
 ```
 
-If MongoDB is not installed or running, direct them to:
-https://www.mongodb.com/docs/manual/installation/
+If either is missing, install them before continuing.
 
-The default connection string `mongodb://localhost:27017` will be used. No
-`DOCUMENTDB_URI` environment variable is needed (it's the server default).
+## Step 2: Pick the connection target
 
-Proceed to Step 4 (Configure Transport Mode).
+| Option | When to use | Example URI |
+|---|---|---|
+| **A. Azure DocumentDB** | Production / cloud dev | `mongodb+srv://<user>:<pw>@<cluster>.mongocluster.cosmos.azure.com/?tls=true&authMechanism=SCRAM-SHA-256` |
+| **B. Local MongoDB / DocumentDB** | Local dev | `mongodb://localhost:27017` |
+| **C. Custom MongoDB-compatible** | Atlas, self-hosted, third-party | `mongodb://<user>:<pw>@host:port/?tls=true` |
 
-## Step 3c: Custom Endpoint Setup
+**Azure DocumentDB connection string:** Azure portal → your DocumentDB cluster
+→ **Settings** → **Connection strings**. Replace `<username>` / `<password>`
+with database user credentials. TLS is required (`tls=true` must be present).
 
-If the user chooses Option C:
+## Step 3: Pick a transport
 
-**Do NOT ask the user to paste their connection string into the chat.** A
-connection string is a credential. Instead, tell the user the supported
-shapes so they can recognize their own value and add it directly to their
-local `~/.documentdb-env` file in Step 5. **Do not paste the completed
-connection string into this chat.**
+- **`stdio`** (default, recommended) — the client launches the server as a
+  subprocess. Use this for every client below.
+- **`streamable-http`** — only for browser clients or custom HTTP integrations
+  where you have a separate, long-running server with Entra-authenticated
+  bearer tokens. Not covered here; see the upstream README.
 
-**Supported shapes (placeholders only):**
+For stdio, set `AUTH_REQUIRED=false` and `TRUST_LOCAL_STDIO=true`.
+The server defaults `AUTH_REQUIRED=true` and **exits at startup** unless
+`ENTRA_TENANT_ID` / `ENTRA_AUDIENCE` are set, even for stdio.
+(`TRUST_LOCAL_STDIO` was named `ALLOW_UNAUTHENTICATED_STDIO` before
+[microsoft/documentdb-mcp#83](https://github.com/microsoft/documentdb-mcp/pull/83)
+— if you're on an older server build, use that name instead.)
 
-- `mongodb://[USER]:[PASSWORD]@host:port/database`
-- `mongodb+srv://[USER]:[PASSWORD]@host/database`
-- `mongodb://host:port` (no auth)
+**`AUTH_REQUIRED=false` does not weaken your cluster's auth.** It gates only
+the Entra-JWT bearer-token check on the MCP server's HTTP/SSE transport —
+i.e., calls from the MCP client to this server. It is fully independent
+from how the MCP server talks to your DocumentDB cluster: SCRAM
+username/password (from the connection-string URI) and Entra-to-cluster
+tokens (`authMode: "entra"`) flow through `CONNECTION_PROFILES` and stay
+active regardless of `AUTH_REQUIRED`. TLS to the cluster (`tls=true`),
+capability gates (`ENABLE_*_TOOLS`), and tool-tier authorization are also
+unaffected.
 
-If the user pastes a real connection string anyway, refuse to process it
-(see the *Safety* section) and continue to Step 4 with placeholders only.
+This setup is safe **only because `TRANSPORT=stdio`**: the MCP server runs
+as a subprocess of the trusted local client — no network listener is
+opened. If you ever switch `TRANSPORT` to `streamable-http` or `sse`, set
+`AUTH_REQUIRED=true` and provide the Entra tenant/audience, or the `/mcp`
+endpoint will be exposed unauthenticated.
 
-Proceed to Step 4 (Configure Transport Mode).
+## Step 4: Write the MCP config
 
-## Step 4: Configure Transport Mode
+The MCP server entry has the same shape for every client. Only the wrapping
+config file and the top-level key (`mcpServers` vs `mcp.servers`) differ.
 
-The DocumentDB MCP server supports two transport modes:
+**Server entry template** (substitute `<CONN_STRING>` with the URI from Step 2):
 
-**stdio (Default)** — Recommended for most MCP client integrations:
-- Communicates over standard input/output streams
-- No additional configuration needed
-- Best for Claude, Cursor, Copilot CLI, and most coding agents
-
-**streamable-http** — For HTTP-based integrations:
-- Runs as an HTTP server
-- Configurable host and port
-- Best for browser-based clients or custom HTTP integrations
-
-For most users, **stdio** is the right choice. Only choose streamable-http if
-you specifically need HTTP-based access.
-
-If streamable-http is chosen, also configure:
-- `HOST` — Server host (default: `localhost`)
-- `PORT` — Server port (default: `8070`)
-
-Proceed to Step 5 (Update Shell Profile).
-
-## Step 5: Update Shell Profile
-
-Help the user add the environment variables to their shell profile.
-
-**Strict rule (see Safety section):** the agent must **never** ask the user to
-paste their connection string into the chat, and must **never** write the
-actual credential value into any file. The agent only emits the placeholder
-`<paste-your-connection-string-here>`; the user opens the file in their own
-editor and substitutes the real value locally.
-
-### 5.1: Detect Shell and Profile File
-
-If the user is on Windows, assume **PowerShell** but ask the user to confirm.
-For Unix/macOS, detect the shell:
-
-```bash
-echo $SHELL
+```jsonc
+{
+  "DocumentDB": {
+    "command": "npx",
+    "args": ["-y", "github:microsoft/documentdb-mcp"],
+    "env": {
+      "TRANSPORT": "stdio",
+      "AUTH_REQUIRED": "false",
+      "TRUST_LOCAL_STDIO": "true",
+      "CONNECTION_PROFILES": "{\"default\":{\"authMode\":\"connectionString\",\"uri\":\"<CONN_STRING>\"}}"
+    }
+  }
+}
 ```
 
-Based on the result, identify the appropriate profile file.
+Notes:
 
-### 5.2: Show the Exact Snippet to Add
+- `CONNECTION_PROFILES` is a **JSON string** (escaped) — not a JSON object.
+- The profile name `default` is what agents pass to tool calls via the
+  `connection_profile` argument. You can use any name; `default` keeps it
+  simple.
+- To allow write or management tools, add `"ENABLE_WRITE_TOOLS": "true"` and/or
+  `"ENABLE_MANAGEMENT_TOOLS": "true"` to `env`. Read tools are on by default.
+- The first `npx -y github:...` invocation will clone and build the server
+  (~30 s on a fast connection). Subsequent invocations use the `npx` cache.
+  For faster startup, install once locally and point `command`/`args` at the
+  built `node /path/to/dist/main.js` instead — this is what the bundled
+  installer does.
 
-Tell the user to store the connection string in a dedicated `~/.documentdb-env`
-file. This keeps credentials out of files that are often group/world readable by
-default and prevents accidentally committing them to git.
+### Client-specific config files
 
-**Step 1**: Create/edit `~/.documentdb-env` (e.g., `nano ~/.documentdb-env`)
-and add:
+| Client | Config file | Top-level key |
+|---|---|---|
+| **Claude Code** (user-scoped) | `~/.claude.json` | `mcpServers` |
+| **Claude Desktop** | macOS: `~/Library/Application Support/Claude/claude_desktop_config.json` <br> Linux: `~/.config/Claude/claude_desktop_config.json` <br> Windows: `%APPDATA%\Claude\claude_desktop_config.json` | `mcpServers` |
+| **Cursor** (user-scoped) | `~/.cursor/mcp.json` | `mcpServers` |
+| **GitHub Copilot CLI** | `~/.copilot/mcp-config.json` | `mcpServers` |
+| **GitHub Copilot for VS Code** | VS Code `settings.json` | `mcp.servers` |
+| **Gemini CLI** | `~/.gemini/settings.json` | `mcpServers` |
 
-**For Azure DocumentDB (Option A):**
+If the file doesn't exist yet, create it with a single top-level object:
 
-```bash
-# DocumentDB MCP Server Configuration
-export DOCUMENTDB_URI="<paste-your-connection-string-here>"
+```json
+{ "mcpServers": { "DocumentDB": { ... } } }
 ```
 
-**For Custom Endpoint (Option C):**
+If it already has other servers, **add** the `DocumentDB` entry inside the
+existing `mcpServers` object — don't overwrite the whole file.
 
-```bash
-# DocumentDB MCP Server Configuration
-export DOCUMENTDB_URI="<paste-your-connection-string-here>"
-```
+## Step 5: Restart the client and verify
 
-**If streamable-http transport was chosen (Step 4), also add:**
-
-```bash
-export TRANSPORT="streamable-http"
-export HOST="localhost"
-export PORT="8070"
-```
-
-**Step 2**: Restrict permissions on the file:
-
-```bash
-chmod 600 ~/.documentdb-env
-```
-
-**Step 3**: Source the file from the shell profile. Tell the user to open their
-profile file (e.g., `code ~/.zshrc`, `nano ~/.zshrc`) and add:
-
-```bash
-source ~/.documentdb-env
-```
-
-Adjust syntax for the detected shell (e.g., for fish: `bass source
-~/.documentdb-env` or set variables directly with `set -x`; for PowerShell:
-dot-source a `.ps1` file instead).
-
-### 5.3: After Editing — Reload and Verify
-
-Once the user has saved the file, provide the commands to reload and verify:
-
-**Reload the profile:**
-
-```bash
-source ~/.zshrc  # adjust path to match their profile file
-```
-
-**Verify the variables are set (masking values):**
-
-```bash
-env | grep "^DOCUMENTDB_URI\|^TRANSPORT\|^HOST\|^PORT" | sed 's/DOCUMENTDB_URI=.*/DOCUMENTDB_URI=[set]/'
-```
-
-Expected output should show the variable name(s) they just added.
-
-Proceed to Step 6 (Next Steps).
-
-## Step 6: Next Steps
-
-### For Options A & C (Azure DocumentDB / Custom Endpoint):
-
-1. **Restart the agentic client**: Fully quit the client, then in your terminal
-   run `source <profile-file>` (e.g., `source ~/.zshrc`) to load the new
-   variables. Open the client from that same shell session so it inherits the
-   environment.
-
-2. **Verify MCP Server**: After restart, test by performing a DocumentDB
-   operation:
-   - Try `list_databases` to see available databases
-   - Try `get_connection_status` to verify the connection
-
-3. **Using the Tools**:
-   - Database operations: `list_databases`, `db_stats`, `get_db_info`
-   - Collection operations: `collection_stats`, `sample_documents`
-   - Document operations: `find_documents`, `count_documents`, `aggregate`
-   - Index operations: `list_indexes`, `index_stats`, `create_index`
-   - Query optimization: `optimize_find_query`, `explain_aggregate_query`
-
-### For Option B (Local MongoDB):
-
-1. **Ready to use**: No additional configuration needed if using the default
-   connection string.
-
-2. **Start the MCP server**: The server will connect to `mongodb://localhost:27017`
-   by default.
-
-3. **Verify**: Try `list_databases` to confirm connectivity.
+1. **Fully quit** the client (not just close the window).
+2. Reopen it.
+3. Ask the agent to list available DocumentDB tools, or run a tool directly
+   (the agent should pass `connection_profile: "default"`):
+   - `list_databases` — confirms the server is reachable and the profile works
+   - `db_stats` — basic round-trip check
 
 ## Troubleshooting
 
-- **Variables not appearing after `source`**: Check the profile file path and
-  confirm the file was saved
-- **Client doesn't pick up variables**: Ensure full restart (quit + reopen),
-  not just a reload
-- **TLS errors with Azure DocumentDB**: Ensure `tls=true` is in the
-  connection string
-- **Authentication errors**: Ask the user to re-check their credentials
-  locally in `~/.documentdb-env` (never in chat) and to confirm the
-  database user exists in the Azure portal
-- **Connection timeout**: Check network connectivity and firewall rules;
-  Azure DocumentDB may require allowlisting your IP in the Azure portal
-  under Networking settings
-- **fish/PowerShell**: Syntax differs — use `set -x` (fish) or `$env:`
-  (PowerShell) instead of `export`
+- **`npx` errors / repo not found**: the upstream `microsoft/documentdb-mcp`
+  repo may be private or unreachable. Check `git ls-remote
+  https://github.com/microsoft/documentdb-mcp.git`; if it fails, fall back to
+  cloning the repo manually, running `npm install && npm run build`, and
+  pointing `command` → `node`, `args` → `["<abs-path>/dist/main.js"]`.
+- **`stdio transport is disabled when AUTH_REQUIRED=true` / `unauthenticated stdio is disabled`**:
+  you forgot `TRUST_LOCAL_STDIO: "true"` in `env` (or, on older builds before
+  microsoft/documentdb-mcp#83, `ALLOW_UNAUTHENTICATED_STDIO: "true"`).
+- **`AUTH_REQUIRED is true but ...` / server exits immediately on launch**:
+  add `"AUTH_REQUIRED": "false"` to `env`. The server defaults this to `true`
+  and refuses to start without Entra tenant/audience config. This flag gates
+  only the Entra-JWT bearer check on the MCP server's HTTP/SSE transport
+  — it does **not** disable MongoDB-level auth (SCRAM or `authMode=entra`),
+  TLS, or capability gates. Only set it to `false` together with
+  `TRANSPORT=stdio`.
+- **`connection_profile "default" not found`**: the agent is passing a
+  different profile name than what's defined in `CONNECTION_PROFILES`. Either
+  rename your profile or tell the agent which name to use.
+- **TLS errors against Azure DocumentDB**: ensure `tls=true` is in the URI and
+  the connection string is fully URL-encoded (special characters in passwords
+  must be percent-encoded).
+- **Auth errors**: verify the database user exists in Azure portal under your
+  cluster's Settings → Authentication, and that the password is correct.
+- **Connection timeout to Azure**: Azure DocumentDB firewall may be blocking
+  your IP. Portal → cluster → **Networking** → add your client IP to the
+  allowlist.
+- **JSON escape issues**: `CONNECTION_PROFILES` is a string of JSON. Inner
+  double quotes must be escaped (`\"`). Use a JSON validator if the client
+  silently ignores the server. The bundled installer handles escaping
+  correctly — prefer it if escaping is painful.
+- **Client doesn't pick up the new server**: ensure a full restart of the
+  client (quit + reopen), not just a window reload.
+- **VS Code uses `mcp.servers`, not `mcpServers`**: this is the one client
+  with a different top-level key.

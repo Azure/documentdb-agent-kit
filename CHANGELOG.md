@@ -1,5 +1,91 @@
 # Changelog
 
+## 2026-05-27 — Mark project as Public Preview
+
+Add a Public Preview status badge to `README.md` and a top-of-document
+IMPORTANT admonition pointing at the
+[Azure Preview Supplemental Terms](https://azure.microsoft.com/support/legal/preview-supplemental-terms/).
+Add a matching status note to `AGENTS.md` so agents reading the kit
+relay the preview status to users before committing kit-installed
+configs into production-shaped surfaces. No functional changes; this
+clarifies that the kit (like the upstream `microsoft/documentdb-mcp`
+server it depends on) is pre-GA, has no SLA, is provided "as-is", and
+may change in breaking ways before General Availability.
+
+## 2026-05-27 — Track upstream rename: `ALLOW_UNAUTHENTICATED_STDIO` → `TRUST_LOCAL_STDIO`
+
+Upstream [microsoft/documentdb-mcp#83](https://github.com/microsoft/documentdb-mcp/pull/83)
+renamed `ALLOW_UNAUTHENTICATED_STDIO` to `TRUST_LOCAL_STDIO`. The old name is
+no longer recognized — server builds at `main` silently ignore it. The kit's
+installer kept working only because it also sets `AUTH_REQUIRED=false`, which
+short-circuits the Entra startup-validator before `TRUST_LOCAL_STDIO` is ever
+consulted. Renamed everywhere so future readers don't see a dead env var:
+
+- `install.sh` — `build_env_json()` (both python and jq paths)
+- `install.ps1` — `Get-EnvJsonHashtable()`
+- `mcp.json`
+- `skills/mcp-setup/SKILL.md` — Step 3, config template, troubleshooting
+- `README.md` — troubleshooting table
+
+Also fixed a small but real correctness issue in the upstream-installed
+"Install in VS Code" badge: it sets `TRUST_LOCAL_STDIO=true` and `TRANSPORT=stdio`
+but omits `AUTH_REQUIRED=false`. Because the server's `validateConfig` runs
+before the transport switch and demands `ENTRA_TENANT_ID` / `ENTRA_AUDIENCE`
+whenever `AUTH_REQUIRED=true` (the default), the install-button config exits
+at startup with "AUTH_REQUIRED=true requires ENTRA_TENANT_ID to be set." A
+separate PR upstream fixes both the validator (skip the Entra check when
+`TRANSPORT=stdio` and `TRUST_LOCAL_STDIO=true`) and the badge URL.
+
+## 2026-05-21 — Cross-client installer: skills + DocumentDB MCP server in one command
+
+Replaced the non-functional `npx skills add Azure/documentdb-agent-kit`
+placeholder with real installers (`install.sh` for macOS/Linux, `install.ps1`
+for Windows / cross-platform PowerShell) that, in one command, wire both the
+kit's skills and the [`microsoft/documentdb-mcp`](https://github.com/microsoft/documentdb-mcp)
+server into every detected client.
+
+What landed:
+
+- **`install.sh`** — POSIX bash installer, zero runtime deps beyond `git` +
+  Node 20+. Auto-detects Claude Code, Claude Desktop, Cursor, GitHub Copilot
+  CLI, and Gemini CLI; clones+builds the MCP server into
+  `~/.documentdb-agent-kit/mcp-server/`; symlinks each skill into clients that
+  support a skills directory; merges (idempotently) a single `DocumentDB` MCP
+  entry into each client's JSON config with a timestamped `.bak` backup before
+  every edit. Uses `python3` for JSON merging when available (universal on
+  dev machines), falls back to `jq`.
+- **`install.ps1`** — PowerShell 5.1+ / pwsh 7+ mirror. Same flow, native
+  `ConvertFrom-Json` / `ConvertTo-Json` for merges. Falls back to copying skills
+  when symlink creation requires Developer Mode / admin on Windows.
+- **Flags on both:** `--uri`, `--yes`, `--dry-run`, `--uninstall`, `--clients`,
+  `--skills-only`, `--mcp-only`, `--mcp-ref`, `--kit-ref`, `--profile`.
+- **README rewrite** — install section now documents the one-liner, what gets
+  installed where, requirements, flags, verify steps, uninstall, and a
+  manual-install fallback.
+- **`skills/mcp-setup/SKILL.md` rewrite** — the previous version told users to
+  set `DOCUMENTDB_URI` in a shell profile, which is **not** how the current
+  upstream MCP server is configured. Rewrote around the actual upstream
+  contract: per-client MCP config file with `CONNECTION_PROFILES` JSON,
+  `TRANSPORT=stdio`, `AUTH_REQUIRED=false`, and
+  `ALLOW_UNAUTHENTICATED_STDIO=true` (later renamed `TRUST_LOCAL_STDIO` in
+  [microsoft/documentdb-mcp#83](https://github.com/microsoft/documentdb-mcp/pull/83);
+  this kit was updated to emit the new name in the 2026-05-27 entry below).
+  Added per-client config-file table for
+  Claude Code / Desktop / Cursor / Copilot CLI / Gemini CLI / VS Code.
+  Updated AGENTS.md's mcp-setup row accordingly. Documented that
+  `AUTH_REQUIRED` gates only the Entra-JWT bearer check on the MCP server's
+  HTTP/SSE transport and is independent of MongoDB cluster auth (SCRAM /
+  `authMode=entra`), TLS, and capability gates — `AUTH_REQUIRED=false` is
+  safe only with `TRANSPORT=stdio`, and the same caveat is captured in the
+  installer comments.
+
+Verified end-to-end (Bash + PowerShell) in sandboxed `$HOME` against fake
+client configs: existing MCP servers preserved, single- and multi-element
+`args` arrays preserved across JSON round-trips, idempotent re-runs do not
+duplicate the `DocumentDB` entry, uninstall removes only the kit's entries
+and symlinks (foreign symlinks + other server entries untouched), and
+`~/.documentdb-agent-kit/` is removed on uninstall.
+
 ## 2026-05-04 — Plugin manifests for Claude / Cursor / Codex / Gemini + bundled MCP server
 
 The kit now ships as an installable plugin/extension for every major coding agent, bundling the [DocumentDB MCP server](https://github.com/microsoft/documentdb-mcp) (`documentdb-mcp-server` on npm) alongside the existing `skills/` tree. Users get skills + database tools in a single install command.

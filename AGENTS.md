@@ -2,6 +2,14 @@
 
 This repository is an **Agent Skills** pack for **Azure DocumentDB (with MongoDB compatibility)** — the managed Azure service built on the open-source [DocumentDB](https://github.com/microsoft/documentdb) project. Every skill targets Azure DocumentDB specifically; rules call out DocumentDB features that differ from community MongoDB (`cosmosSearch` vector indexes, `createSearchIndexes` full-text search, cluster M-tiers, Entra RBAC, CMK, etc.).
 
+> **Status: Public Preview.** This kit and its upstream MCP server are
+> pre-GA; rule contents, skill shapes, installer behavior, and the MCP
+> tool surface may change in breaking ways. No SLA. See the
+> [Azure Preview Supplemental Terms](https://azure.microsoft.com/support/legal/preview-supplemental-terms/).
+> When acting on the kit, agents should call out this status to the user
+> if they're about to commit kit-installed configs into anything that
+> looks production-shaped.
+
 ## How agents should use this kit
 
 ### Skill routing (do this first)
@@ -42,7 +50,7 @@ These skills walk the user (or another agent) through a task end-to-end.
 
 | Skill | Folder | When to use |
 |---|---|---|
-| `documentdb-mcp-setup` | `skills/mcp-setup/` | User has the DocumentDB MCP server installed but hasn't configured `DOCUMENTDB_URI` / transport / shell profile |
+| `documentdb-mcp-setup` | `skills/mcp-setup/` | Installing / configuring the DocumentDB MCP server in an agentic client (Claude Code, Claude Desktop, Cursor, Copilot CLI, Gemini CLI, VS Code); defining `CONNECTION_PROFILES` |
 | `documentdb-azure-deployment` | `skills/azure-deployment/` | Provisioning an Azure DocumentDB cluster (`Microsoft.DocumentDB/mongoClusters`) via Bicep, Azure CLI, Terraform, or portal; firewall rules; connection string retrieval |
 | `documentdb-natural-language-querying` | `skills/natural-language-querying/` | "How do I query…", "filter / group / aggregate…", SQL → MQL translation (read-only queries only) |
 | `documentdb-query-optimizer` | `skills/query-optimizer/` | "Why is this slow?", index review, `explain()`-driven tuning; loads `references/core-indexing-principles.md` |
