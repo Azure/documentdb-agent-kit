@@ -39,7 +39,21 @@ server into every detected MCP client. Pick your platform:
 | Linux | [`docs/installation/linux.md`](docs/installation/linux.md) |
 | Windows | [`docs/installation/windows.md`](docs/installation/windows.md) |
 
-For uninstall, troubleshooting, manual install, skills-only install, updating, and per-agent plugin marketplaces, see [`docs/installation/`](docs/installation/README.md).
+### Skills-only (any agent)
+
+To install just the skill catalog into whichever agent you're using — no MCP server — via the [skills.sh](https://skills.sh/) CLI:
+
+```bash
+npx skills add Azure/documentdb-agent-kit
+```
+
+This drops the rule docs into your agent's skill directory but **does not** install the MCP server. Use one of the per-OS guides above if you want the DB tools too.
+
+> To update later, re-run the same `npx skills add Azure/documentdb-agent-kit` command — it re-fetches the latest `main` and overlays updated rule files. For installer-based updates and per-agent plugin update commands, see [`docs/installation/updating.md`](docs/installation/updating.md).
+
+> 💡 **Accept the optional `find-skills` helper when prompted.** During `npx skills add` the installer will ask whether to install [`find-skills`](https://github.com/skills-sh/find-skills) — say **yes**. It's a tiny meta-skill that lets agents auto-discover the right DocumentDB skill for a task (e.g. *"how do I create a BM25 index?"* → auto-loads `documentdb-full-text-search`) instead of relying on you to invoke skills by name. It's especially useful here because the kit ships 17 skills, more than agents reliably route on their own from `AGENTS.md` alone. If you skipped it, re-run `npx skills add find-skills` to add it later.
+
+For uninstall, troubleshooting, manual install, updating, and per-agent plugin marketplaces, see [`docs/installation/`](docs/installation/README.md).
 
 ## Configuration
 
