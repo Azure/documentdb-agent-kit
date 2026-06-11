@@ -18,7 +18,7 @@ But indexes aren't free:
 - Too many indexes can make the planner pick a worse plan.
 
 **Rule of thumb:** keep the index count per collection well under 20. Drop
-unused indexes (check with `$indexStats` / `index_stats`).
+unused indexes (check with `$indexStats` aggregation stage or MCP `get_statistics` with scope "index").
 
 ## Supported Index Types
 
@@ -149,8 +149,8 @@ db.orders.find(
 
 - Index creation on large collections runs in the **background** on Azure
   DocumentDB; writes continue during the build.
-- Progress can be monitored with `current_ops` (via MCP) or
-  `db.currentOp({ "command.createIndexes": { $exists: true } })`.
+- Progress can be monitored with `current_ops` (MCP) or
+  `db.currentOp({ "command.createIndexes": { $exists: true } })` (mongosh).
 - Keep an eye on disk headroom — a large compound index can be tens of GB.
 
 ## Special Index Categories
