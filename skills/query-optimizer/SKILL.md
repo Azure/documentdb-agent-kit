@@ -30,10 +30,10 @@ with optimization, slow queries, or indexing.
 
 If the user is asking about a particular query:
 
-1. Use `list_indexes` to get existing indexes on the collection
-2. Use `optimize_find_query` (for find queries) or `explain_aggregate_query`
-   (for aggregation pipelines) to get explain output with execution stats
-3. Use `find_documents` with limit=1 to fetch a sample document to understand the
+1. Use `list_indexes` (MCP) or `db.<coll>.getIndexes()` (mongosh) to get existing indexes on the collection
+2. Use `explain_operation` (MCP) or `.explain("executionStats")` (mongosh)
+   to get explain output with execution stats
+3. Use `find_documents` (MCP) or `db.<coll>.findOne()` (mongosh) to fetch a sample document to understand the
    schema
 
 Then make an optimization suggestion based on collected information and best
@@ -45,29 +45,57 @@ the query if possible.
 If the user wants to examine slow queries or is looking for general performance
 suggestions (not regarding any particular query):
 
-1. Use `list_databases` and `get_db_info` to understand the database structure
-2. Use `collection_stats` to identify large collections
-3. Use `index_stats` to check existing index usage
-4. Use `current_ops` to see currently running operations
+1. Use `list_databases` (MCP) or `show dbs` (mongosh) to understand the database structure
+2. Use `get_statistics` with scope "collection" (MCP) or `db.collection.stats()` (mongosh) to identify large collections
+3. Use `get_statistics` with scope "index" (MCP) or `db.collection.aggregate([{$indexStats:{}}])` (mongosh) to check existing index usage
+4. Use `current_ops` (MCP) or `db.currentOp()` (mongosh) to see currently running operations
 5. Suggest reviewing the most-used collections for missing indexes
 
 ## MCP Tools Available
 
-**Database tools** (for query optimization):
+When DocumentDB MCP server is connected, these tools are available:
 
 | Tool name (exact) | Description |
 | :--- | :--- |
 | `list_indexes` | List all indexes on a collection — check if the query can use an existing index |
-| `optimize_find_query` | Run explain with executionStats for a find query, returning metrics, plan shape, index stats, and collection stats in one call |
-| `explain_aggregate_query` | Run explain with executionStats for an aggregation pipeline |
-| `explain_find_query` | Run explain for a find query (lower-level than optimize_find_query) |
-| `explain_count_query` | Run explain for a count query |
+| `explain_operation` | Run explain with executionStats for any operation (find, aggregate, count) |
 | `find_documents` | Fetch sample documents to understand schema — use with limit=1 |
-| `collection_stats` | Get collection statistics (size, document count, storage) |
-| `index_stats` | Get index usage statistics ($indexStats) |
+| `get_statistics` | Get collection or index statistics (use scope: "collection" or "index") |
 | `current_ops` | Get currently running database operations |
 | `create_index` | Create a new index (only after user approval) |
 | `drop_index` | Drop an existing index (only after user approval) |
+| `sample_documents` | Sample random documents from a collection |
+
+## Local mongosh Commands (No MCP Required)
+
+All diagnostic operations can be performed directly via mongosh. Use these when
+MCP is not available or for quick ad-hoc diagnostics:
+
+```javascript
+// Explain a find query
+db.collection.find({filter}).explain("executionStats")
+
+// Explain an aggregation pipeline
+db.collection.aggregate([{$match:...}, {$group:...}]).explain("executionStats")
+
+// Explain a count
+db.runCommand({explain: {count: "collection", query: {filter}}, verbosity: "executionStats"})
+
+// Collection statistics
+db.collection.stats()
+
+// List indexes
+db.collection.getIndexes()
+
+// Index usage statistics
+db.collection.aggregate([{$indexStats: {}}])
+
+// Sample documents
+db.collection.aggregate([{$sample: {size: 3}}])
+
+// Currently running operations
+db.currentOp()
+```
 
 ## Load References
 
@@ -81,33 +109,52 @@ Always load:
 
 ### Step 1: Gather Information
 
-For a specific query, run these tools (when MCP is connected):
+For a specific query, run these tools:
 
+**Via MCP (when connected):**
 ```
 list_indexes({ db_name: "<db>", collection_name: "<coll>" })
 ```
 
 ```
-optimize_find_query({
+explain_operation({
   db_name: "<db>",
   collection_name: "<coll>",
-  query: <filter>,
-  options: { sort: <sort>, projection: <projection>, limit: <n> }
+  operation: {
+    find: "<coll>",
+    filter: <filter>,
+    sort: <sort>,
+    projection: <projection>,
+    limit: <n>
+  }
 })
 ```
 
 For aggregation pipelines:
 ```
-explain_aggregate_query({
+explain_operation({
   db_name: "<db>",
   collection_name: "<coll>",
-  pipeline: <pipeline_array>
+  operation: {
+    aggregate: "<coll>",
+    pipeline: <pipeline_array>,
+    cursor: {}
+  }
 })
+```
+
+**Via mongosh (no MCP):**
+```javascript
+use <db>
+db.<coll>.getIndexes()
+db.<coll>.find(<filter>).sort(<sort>).explain("executionStats")
+db.<coll>.aggregate(<pipeline>).explain("executionStats")
 ```
 
 ### Step 2: Analyze Explain Output
 
-From the `optimize_find_query` / `explain_aggregate_query` response, extract:
+From the `explain("executionStats")` response (via MCP `explain_operation` or
+direct mongosh), extract:
 
 - **metrics**: `totalKeysExamined`, `totalDocsExamined`, `nReturned`,
   `executionTimeMillis`
@@ -155,7 +202,7 @@ Recommended index: `{status: 1, region: 1, date: -1}`
 After creating the recommended index, re-run the explain to confirm improvement:
 
 1. Create the index (with user approval)
-2. Re-run `optimize_find_query` with the same query
+2. Re-run `explain_operation` (MCP) or `.explain("executionStats")` (mongosh) with the same query
 3. Compare metrics before and after
 
 ## Example Workflow
@@ -170,13 +217,21 @@ After creating the recommended index, re-run the explain to confirm improvement:
    - Result shows: `{_id: 1}`, `{status: 1}`, `{date: -1}`
 
 2. **Run explain:**
-   - Call `optimize_find_query` with query=`{status: 'shipped', region: 'US'}`,
-     options=`{sort: {date: -1}}`
+   - Call `explain_operation` with operation=`{find: "orders", filter: {status: "shipped", region: "US"}, sort: {date: -1}}`
    - Result: Uses `{status: 1}` index, then in-memory SORT,
      totalKeysExamined: 50000, nReturned: 100
 
 3. **Fetch sample:**
    - Call `find_documents` with limit=1 to understand the schema
+
+**If MCP is not available**, use mongosh directly:
+
+```javascript
+use store
+db.orders.getIndexes()
+db.orders.find({status: "shipped", region: "US"}).sort({date: -1}).explain("executionStats")
+db.orders.findOne()
+```
 
 4. **Diagnose:** This query targets 100 docs but scans 50K index entries (poor
    selectivity: 0.002). In-memory sort adds overhead. The `{status: 1}` index
