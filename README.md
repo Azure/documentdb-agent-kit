@@ -15,6 +15,27 @@ Skills follow the [Agent Skills](https://agentskills.io/) format and the kit shi
 
 👉 **Capabilities and skill catalog:** [`docs/SKILLS.md`](docs/SKILLS.md)
 
+### Install scripts (with optional usage telemetry)
+
+Cross-platform installers copy or symlink the `skills/` folder into your agent's
+skills directory:
+
+```powershell
+# Windows / PowerShell
+./scripts/install.ps1 -Target claude-user
+```
+
+```bash
+# macOS / Linux
+./scripts/install.sh --target claude-user
+```
+
+These installers can send **anonymous, opt-in** usage telemetry (which skills
+were installed) to help maintainers prioritize. Telemetry is **off by default**
+and only sent when you pass `-Telemetry` / `--telemetry` (or set
+`DDBKIT_TELEMETRY=1`). See [TELEMETRY.md](TELEMETRY.md) for exactly what is and
+is not collected.
+
 ## Repo Structure
 
 ```
