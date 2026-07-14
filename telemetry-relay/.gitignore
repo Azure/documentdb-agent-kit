@@ -1,0 +1,4 @@
+# Never commit real secrets or local settings.
+local.settings.json
+node_modules/
+.env
