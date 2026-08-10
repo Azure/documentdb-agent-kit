@@ -15,7 +15,7 @@ findings to report.
 ## Run
 
 ```bash
-export DB_PASSWORD=Test1234                       # or pass --password
+export DB_PASSWORD='<your-password>'                       # or pass --password
 bash scenarios/index-redundancy/seed.sh           # -> database "idx_test"
 bash scripts/index-redundancy-finder.sh --db idx_test
 bash scripts/index-redundancy-finder.sh --db idx_test --json    # machine output

@@ -35,13 +35,67 @@ routes:
 # Confident routes must clear this score (router sets "confident" at >= 2.0).
 min_confident_score: 2.0
 
-# A vague query with no tool-specific signal must NOT produce a confident route —
-# the router should decline rather than guess.
+# Route B (skills): representative NL query -> skill id the router must resolve to
+# via engine.rank_skills. Guards that promoting/adding a standalone skill keeps it
+# (and its siblings) triggerable without colliding.
+skill_routes:
+  - query: "how do I read the explain output and apply the ESR rule"
+    skill: query-performance-tuning
+  - query: "how do I find slow queries in production with log analytics"
+    skill: query-performance-tuning
+  - query: "how do I stop my query from doing a collection scan"
+    skill: query-performance-tuning
+  - query: "optimize this query and recommend an index"
+    skill: query-optimizer
+  - query: "how should I index this specific query"
+    skill: query-optimizer
+  - query: "which index type should I use for this query"
+    skill: indexing
+  - query: "which compound index should I design for this filter, sort, and range query"
+    skill: indexing
+  - query: "use explain to check whether this query uses an index or does a collection scan"
+    skill: query-optimizer
+  - query: "verify that my query is using an index and not scanning the collection"
+    skill: query-optimizer
+  - query: "help me write an aggregation pipeline to group by status"
+    skill: natural-language-querying
+  - query: "translate this SQL query into a MongoDB query"
+    skill: natural-language-querying
+  - query: "how do I set up the documentdb mcp server"
+    skill: mcp-setup
+  - query: "provision an azure documentdb cluster with bicep"
+    skill: azure-deployment
+  - query: "how do I tune my connection pool size and maxPoolSize"
+    skill: connection
+  - query: "I'm getting connection pool exhaustion and timeouts"
+    skill: connection
+
+# A skill query that must resolve to a skill AND be the recommended route
+# (higher score than any script) end-to-end through the shell wrapper.
+skill_shell_case:
+  query: "how do I read explain output and apply the ESR rule"
+  skill: query-performance-tuning
+
+# A vague, non-specific query. TOOLS intentionally over-trigger under 1-gram
+# matching (running an extra read-only script is harmless), so the "decline
+# rather than guess" guarantee is asserted on SKILLS, where routing to the wrong
+# guidance is a real cost. This query must stay below the confident threshold
+# for skills (engine.rank_skills).
 unconfident_case:
   query: "my scans read tons of data even though the filter is simple"
 
-# A query that must match a specific MULTIWORD keyword (the +3.0 phrase rule).
-phrase_case:
-  query: "is large text hurting my scans"
-  tool: document-bloat-advisor
-  keyword: "large text"
+# A query that must match a specific MULTIWORD keyword via the +3.0 phrase rule.
+# Phrase matching now applies to SKILLS only (tools use 1-gram); this is checked
+# with engine.rank_skills.
+skill_phrase_case:
+  query: "how do I read the explain output"
+  skill: query-performance-tuning
+  keyword: "explain output"
+
+# A query with a multi-word TOOL keyword whose CONSTITUENT tokens must match
+# under the tools' 1-gram rule (the phrase itself is not required as a hit).
+tool_onegram_case:
+  query: "help me diagnose a collection scan problem"
+  tool: perf-advisor
+  token: "scan"
+

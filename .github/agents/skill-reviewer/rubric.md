@@ -13,7 +13,7 @@ The single highest-leverage check. The frontmatter `description` is loaded every
 Grade against three questions:
 
 1. **Triggers.** Does it list at least 2–3 concrete situations the user might be in? ("Use when designing a new schema, migrating from SQL, deciding between embedding and referencing…") A description that says only *what* the skill is, not *when* to invoke it, fails this check.
-2. **Differentiation.** Could the description plausibly match another skill in the same kit? If `documentdb-indexing` and `documentdb-query-optimization` could trade descriptions and nothing would change, both descriptions are too generic.
+2. **Differentiation.** Could the description plausibly match another skill in the same kit? If `documentdb-indexing` and `documentdb-query-optimizer` could trade descriptions and nothing would change, both descriptions are too generic.
 3. **Length.** Anthropic's hard limit is 1024 characters. Practical sweet spot is 200–500 characters: long enough to list real triggers, short enough that the routing model reads it cleanly. < 80 chars is almost always too vague. > 800 chars usually means the body leaked into the description.
 
 | Grade | Rule |

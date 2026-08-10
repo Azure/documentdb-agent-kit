@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # kb-route.sh — DocumentDB Agent-Kit knowledge-base router.
 #
-# Maps a natural-language diagnostic question to the exact agent-kit script that
-# answers it (ONE HOP: query -> script). Reads knowledge-base/kb.json as the
-# single source of truth. Deterministic keyword/example scoring (stdlib only, no
-# deps) so it works without an LLM — and gives the LLM agent a structured,
-# reproducible routing decision it can trust and explain.
+# Maps a natural-language question to the exact agent-kit target that answers it
+# (ONE HOP). Two target spaces, both scored the same way: Route A `tools`
+# (read-only scripts -> `bash scripts/*.sh`) and Route B `skills` (text guidance
+# -> `skills/*/SKILL.md`). Reads knowledge-base/kb.json as the single source of
+# truth. Deterministic keyword/example scoring (stdlib only, no deps) so it works
+# without an LLM — and gives the LLM agent a structured, reproducible routing
+# decision (best script + best skill + recommended route) it can trust.
 #
 # Multi-hop troubleshooting workflows (guarded diagnostic graph) are described by
 # the kb.json workflow_schema and listed with --workflows; traversal is left to
@@ -14,8 +16,9 @@
 # Usage:
 #   bash knowledge-base/kb-route.sh "why are my writes slow?"        # route
 #   bash knowledge-base/kb-route.sh --db mydb "audit my indexes"     # fill <db>
-#   bash knowledge-base/kb-route.sh --json "check data integrity"    # machine
-#   bash knowledge-base/kb-route.sh --list                           # all tools
+#   bash knowledge-base/kb-route.sh --json "how do I read explain"   # machine
+#   bash knowledge-base/kb-route.sh --list                           # all scripts
+#   bash knowledge-base/kb-route.sh --skills                         # all skills
 #   bash knowledge-base/kb-route.sh --workflows                      # workflows
 set -uo pipefail
 
@@ -31,9 +34,10 @@ while [[ $# -gt 0 ]]; do
         --db)        DB="$2"; shift 2;;
         --json)      JSON=1; shift;;
         --list)      MODE="list"; shift;;
+        --skills)    MODE="skills"; shift;;
         --workflows) MODE="workflows"; shift;;
         --kb)        KB="$2"; shift 2;;
-        -h|--help)   sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//'; exit 0;;
+        -h|--help)   sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'; exit 0;;
         *)           QUERY="${QUERY:+$QUERY }$1"; shift;;
     esac
 done

@@ -19,7 +19,6 @@ why it matters → incorrect example → correct example → references.
 |---|---|---|
 | [`data-modeling/`](../skills/data-modeling/) | `model-` | Embed vs reference, 16 MB limit, denormalization, schema versioning |
 | [`sharding/`](../skills/sharding/) | `sharding-` | When to shard vs stay single-shard, shard-key selection (read-heavy vs write-heavy), logical/physical shard mental model, scale-up vs scale-out, hot-partition diagnosis, `sh.shardCollection` / `sh.reshardCollection`, 4 TB logical-shard budget |
-| [`query-optimization/`](../skills/query-optimization/) | `query-` | `explain("executionStats")`, avoiding `COLLSCAN` |
 | [`indexing/`](../skills/indexing/) | `index-` | Index-type selection (single / compound-ESR / multikey / wildcard / hashed / 2dsphere / TTL), query-pattern → index-shape cookbook, index budget, safe `hideIndex` → `dropIndex` lifecycle |
 | [`driver/`](../skills/driver/) | `driver-` | MongoDB driver/SDK usage (singleton client, pooling) |
 | [`vector-search/`](../skills/vector-search/) | `vector-` | `cosmosSearch` with DiskANN / HNSW / IVF, PQ, fp16 |
@@ -39,7 +38,8 @@ Single-purpose skills the agent loads when its trigger description matches.
 | [`mcp-setup/`](../skills/mcp-setup/) | Configuring the DocumentDB MCP server (connection string, transport, shell profile) |
 | [`azure-deployment/`](../skills/azure-deployment/) | Provisioning an Azure DocumentDB cluster (`Microsoft.DocumentDB/mongoClusters`) — Bicep (with Key Vault), Azure CLI one-shot, Terraform pointer, firewall, connection string, teardown. See also [`examples/azure-deployment/`](../examples/azure-deployment/) for a no-agent ready-to-run deploy. |
 | [`natural-language-querying/`](../skills/natural-language-querying/) | "How do I query…", filter/aggregate/group requests, SQL → MQL translation |
-| [`query-optimizer/`](../skills/query-optimizer/) | "Why is this query slow?", index review, `explain()`-driven tuning (indexing deep-dive lives in its `references/`) |
+| [`query-optimizer/`](../skills/query-optimizer/) | "Why is this query slow?", index review, `explain()`-driven tuning, and **verifying** a query uses an index vs `COLLSCAN` (absorbs the former `query-optimization` rule); indexing deep-dive + explain-verification live in its `references/` |
+| [`query-performance-tuning/`](../skills/query-performance-tuning/) | End-to-end tuning methodology: read DocumentDB's Postgres-backed `explain("executionStats")`, the ESR rule, index-backed sorts, covered queries, and finding slow queries via Log Analytics `VCoreMongoRequests` (explain field glossary lives in its `references/`) |
 | [`connection/`](../skills/connection/) | Connection pool / timeout / retry tuning; serverless vs OLTP vs OLAP patterns |
 
 ## Diagnostic toolbox (scripts + router)
@@ -47,7 +47,10 @@ Single-purpose skills the agent loads when its trigger description matches.
 Beyond the text skills, the kit ships **deterministic, read-only diagnostic
 scripts** that inspect a *local* DocumentDB container across both layers (MongoDB
 API + PostgreSQL engine), plus a **knowledge-base router** that maps a natural-
-language question to the exact script — no LLM at routing time. Full guide:
+language question to the exact target — no LLM at routing time. The router scores
+a question against **two spaces**: Route A `tools` (the scripts below) and Route B
+`skills` (the standalone skills above), and reports the best of each plus a
+`recommended` route. Full guide:
 [`DIAGNOSTICS.md`](DIAGNOSTICS.md); catalog: [`../README.md`](../README.md#the-tools-scripts).
 
 | Tool | Answers |
@@ -57,7 +60,7 @@ language question to the exact script — no LLM at routing time. Full guide:
 | [`db-config-advisor.sh`](../scripts/db-config-advisor.sh) | Working set vs cache, TOAST share, cache-hit ratios (evidence-based). |
 | [`perf-advisor.sh`](../scripts/perf-advisor.sh) | Overall health: collection-scan audit, query timing, PG I/O / locks / config. |
 | [`data-integrity-check.sh`](../scripts/data-integrity-check.sh) | Orphaned foreign keys + mixed-type fields (hard structural integrity). |
-| [`knowledge-base/`](../knowledge-base/README.md) | NL question → exact script (deterministic keyword scoring, zero deps). |
+| [`knowledge-base/`](../knowledge-base/README.md) | NL question → exact script (`--list`) **or** skill (`--skills`); deterministic keyword scoring, zero deps. |
 
 Companion to the toolbox: the `data-modeling` skill's
 [`model-large-field-split`](../skills/data-modeling/model-large-field-split.md)

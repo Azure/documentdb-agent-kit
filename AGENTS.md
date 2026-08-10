@@ -58,7 +58,6 @@ These skills each describe a feature area and link to short rule files with inco
 | Skill | Folder | When to use |
 |---|---|---|
 | `documentdb-data-modeling` | `skills/data-modeling/` | Designing schemas, embed vs reference, 16 MB limit, denormalization, schema versioning |
-| `documentdb-query-optimization` | `skills/query-optimization/` | Writing queries that use indexes; reading `explain("executionStats")` |
 | `documentdb-indexing` | `skills/indexing/` | Choosing the right index type (single / compound / multikey / wildcard / hashed / 2dsphere / TTL); ESR ordering; query-pattern → index-shape cookbook; safe index lifecycle (`hideIndex` → `dropIndex`) |
 | `documentdb-driver` | `skills/driver/` | Singleton `MongoClient`, connection reuse fundamentals |
 | `documentdb-vector-search` | `skills/vector-search/` | `cosmosSearch` with DiskANN / HNSW / IVF, PQ, fp16, cosine normalization |
@@ -78,16 +77,21 @@ These skills walk the user (or another agent) through a task end-to-end.
 | `documentdb-azure-deployment` | `skills/azure-deployment/` | Provisioning an Azure DocumentDB cluster (`Microsoft.DocumentDB/mongoClusters`) via Bicep, Azure CLI, Terraform, or portal; firewall rules; connection string retrieval |
 | `documentdb-natural-language-querying` | `skills/natural-language-querying/` | "How do I query…", "filter / group / aggregate…", SQL → MQL translation (read-only queries only) |
 | `documentdb-query-optimizer` | `skills/query-optimizer/` | "Why is this slow?", index review, `explain()`-driven tuning; loads `references/core-indexing-principles.md` |
+| `documentdb-query-performance-tuning` | `skills/query-performance-tuning/` | End-to-end tuning methodology: reading DocumentDB's Postgres-backed `explain("executionStats")`, the ESR rule, index-backed sorts, covered queries, finding slow queries via Log Analytics `VCoreMongoRequests`; loads `references/documentdb-explain-output.md` |
 | `documentdb-connection` | `skills/connection/` | Pool-size / timeout / retry tuning for serverless, OLTP, OLAP, or bursty workloads |
 
 ## Routing hints for agents
 
 These map a task to the best **Route B (text) skill**. (On **Route A** — when the
 user said *"use toolbox"* — route the same task through `knowledge-base/kb-route.sh`
-to a diagnostic script instead.)
+to a diagnostic script instead.) `kb-route.sh` can also deterministically surface
+the best-matching **skill** for these Route-B tasks (`--skills`, or the
+`skill_match` / `recommended` fields in `--json` output) if you want a scored pick
+rather than reading the table below.
 
 - **Writing / generating a query** → `documentdb-natural-language-querying`
 - **"Why is this query slow / how do I index this?"** → `documentdb-query-optimizer`
+- **"How do I read explain output / what is the ESR rule / how do I tune query performance / find slow queries in prod"** → `documentdb-query-performance-tuning`
 - **"Which index type should I use / design this index"** → `documentdb-indexing`
 - **Designing a schema / data model** → `documentdb-data-modeling`
 - **Adding vector search to a RAG app** → `documentdb-vector-search`

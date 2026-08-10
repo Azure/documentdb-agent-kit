@@ -1,11 +1,12 @@
 {
-  "kb_version": "0.1.0",
-  "description": "DocumentDB Agent-Kit knowledge base. Single source of truth mapping natural-language diagnostic intents to the exact scripts that answer them (one hop), with a schema for multi-hop troubleshooting workflows (guarded diagnostic graph) to be populated later.",
+  "kb_version": "0.2.0",
+  "description": "DocumentDB Agent-Kit knowledge base. Single source of truth mapping natural-language intents to the exact target that answers them (one hop): a read-only diagnostic script (Route A, `tools`) OR a text skill (Route B, `skills`). Also holds a schema for multi-hop troubleshooting workflows (guarded diagnostic graph) to be populated later.",
   "conventions": {
     "db_placeholder": "<db>",
     "run_prefix": "bash",
     "scripts_root": "scripts/",
-    "notes": "Every tool reads a live DocumentDB container locally (mongosh + psql). Recommendations are measured facts, never generic rules-of-thumb."
+    "skills_root": "skills/",
+    "notes": "Route A `tools` are read-only scripts that inspect a live DocumentDB container locally (mongosh + psql) and emit measured facts. Route B `skills` are prose guidance the agent opens/reads (no script run). The router scores a query against both spaces and reports the best of each (`match` for scripts, `skill_match` for skills)."
   },
 
   "tools": [
@@ -104,6 +105,139 @@
       { "query": "find missing indexes and collection scans", "tool": "perf-advisor" },
       { "query": "check for orphaned references", "tool": "data-integrity-check" },
       { "query": "validate referential integrity", "tool": "data-integrity-check" }
+    ]
+  },
+
+  "skills": [
+    {
+      "id": "query-performance-tuning",
+      "name": "documentdb-query-performance-tuning",
+      "title": "Query Performance Tuning Guide",
+      "path": "skills/query-performance-tuning/SKILL.md",
+      "route": "B",
+      "produces": "end-to-end tuning methodology: read DocumentDB explain output, ESR compound-index design, index-backed sorts, covered queries, finding slow queries via Log Analytics",
+      "keywords": ["explain", "explain output", "read explain", "executionstats", "execution stats", "esr rule", "equality sort range", "covered query", "covered queries", "collscan", "collection scan", "ixscan", "in-memory sort", "index-backed sort", "sort stage", "compound index order", "query performance tuning", "performance tuning guide", "tune query", "tune my query", "find slow queries", "slow query log", "vcoremongorequests", "diagnostic logs", "log analytics", "parallel_sort_merge", "indexcosts"],
+      "example_queries": [
+        "how do I read the explain output in documentdb",
+        "what is the ESR rule for compound indexes",
+        "how do I tune a slow query end to end",
+        "how do I find slow queries in production with log analytics",
+        "what is a covered query and how do I get one",
+        "how do I stop my query from doing a collection scan"
+      ]
+    },
+    {
+      "id": "query-optimizer",
+      "name": "documentdb-query-optimizer",
+      "title": "Query Optimizer (interactive)",
+      "path": "skills/query-optimizer/SKILL.md",
+      "route": "B",
+      "produces": "interactive, MCP-driven optimization of a specific query: verify the plan with explain (IXSCAN vs COLLSCAN), list indexes, propose and (with approval) create an ESR index; also validates index usage",
+      "keywords": ["optimize", "optimize query", "optimize this query", "index this", "index this query", "index review", "review my indexes", "recommend index", "index recommendation", "which index should I create", "add an index", "fix my slow query", "fix slow queries", "query optimization", "improve this query", "verify index usage", "check index usage", "is my query using an index", "does this query use an index", "does a collection scan", "avoid collscan", "avoid collection scan", "check the query plan", "query plan review", "verify the query uses an index", "explain plan"],
+      "example_queries": [
+        "optimize this query and recommend an index",
+        "how should I index this specific query",
+        "review the indexes on my collection and suggest improvements",
+        "recommend an index for this find and sort",
+        "use explain to check whether this query uses an index or does a collection scan",
+        "verify that my query is using an index and not scanning the collection"
+      ]
+    },
+    {
+      "id": "natural-language-querying",
+      "name": "documentdb-natural-language-querying",
+      "title": "Natural-Language Querying (SQL → MQL)",
+      "path": "skills/natural-language-querying/SKILL.md",
+      "route": "B",
+      "produces": "read-only find/aggregation queries generated from natural language, including SQL-to-MongoDB translation",
+      "keywords": ["write a query", "generate a query", "how do I query", "query syntax", "aggregation pipeline", "aggregate", "aggregation", "filter documents", "group by", "sql to mongodb", "translate sql", "find documents", "mql", "write an aggregation", "query for documents"],
+      "example_queries": [
+        "how do I write a query to filter documents by status",
+        "generate an aggregation pipeline to group orders by month",
+        "translate this SQL query into a MongoDB query",
+        "how do I query for documents where the amount is greater than 100"
+      ]
+    },
+    {
+      "id": "mcp-setup",
+      "name": "documentdb-mcp-setup",
+      "title": "MCP Server Setup",
+      "path": "skills/mcp-setup/SKILL.md",
+      "route": "B",
+      "produces": "install/configure the DocumentDB MCP server in an agentic client and define CONNECTION_PROFILES; fix MCP connection/auth/profile errors",
+      "keywords": ["mcp", "mcp server", "documentdb mcp", "connection profiles", "connection_profiles", "configure mcp", "install mcp", "set up mcp", "setup mcp", "mcp auth", "mcp connection error", "claude code", "cursor mcp", "copilot cli", "gemini cli", "mcp profile", "wire up mcp"],
+      "example_queries": [
+        "how do I set up the documentdb mcp server",
+        "configure the mcp server connection profiles",
+        "install the documentdb mcp server in cursor",
+        "my mcp server authentication is failing"
+      ]
+    },
+    {
+      "id": "azure-deployment",
+      "name": "documentdb-azure-deployment",
+      "title": "Azure Cluster Deployment",
+      "path": "skills/azure-deployment/SKILL.md",
+      "route": "B",
+      "produces": "provision an Azure DocumentDB cluster (Microsoft.DocumentDB/mongoClusters) via Bicep / Azure CLI / Terraform / portal, plus firewall rules, connection string retrieval, teardown",
+      "keywords": ["deploy", "deploy cluster", "provision", "provision cluster", "create cluster", "spin up", "spin up cluster", "bicep", "terraform", "azure cli", "mongoclusters", "mongo cluster", "infrastructure as code", "firewall rule", "cluster tier", "teardown", "connection string"],
+      "example_queries": [
+        "how do I provision an azure documentdb cluster",
+        "deploy a documentdb cluster with bicep",
+        "spin up a new cluster with terraform",
+        "how do I create a mongo cluster and get its connection string"
+      ]
+    },
+    {
+      "id": "connection",
+      "name": "documentdb-connection",
+      "title": "Connection / Pool Tuning",
+      "path": "skills/connection/SKILL.md",
+      "route": "B",
+      "produces": "MongoClient connection-pool / timeout / retry tuning for serverless, OLTP, OLAP, or bursty workloads; connection-error troubleshooting",
+      "keywords": ["connection pool", "pool size", "maxpoolsize", "connection timeout", "connection tuning", "econnrefused", "pool exhaustion", "mongoclient", "singleton client", "retry writes", "serverless connection", "connection error", "timeout tuning", "connection settings", "connection pooling"],
+      "example_queries": [
+        "how do I tune my connection pool size",
+        "what maxPoolSize should I use for a serverless function",
+        "I'm getting connection timeouts and pool exhaustion errors",
+        "how should I configure the mongo client connection for high traffic"
+      ]
+    },
+    {
+      "id": "indexing",
+      "name": "documentdb-indexing",
+      "title": "Indexing — index-type selection & design",
+      "path": "skills/indexing/SKILL.md",
+      "route": "B",
+      "produces": "choosing the right index TYPE (single / compound / multikey / wildcard / hashed / 2dsphere / TTL), ESR compound-index design, query-pattern -> index-shape cookbook, and the safe hideIndex -> dropIndex lifecycle",
+      "keywords": ["index type", "which index type", "design an index", "design this index", "design a compound index", "compound index", "single field index", "multikey index", "wildcard index", "hashed index", "2dsphere index", "geospatial index", "ttl index", "index shape", "index cookbook", "hide index", "hideindex", "index lifecycle", "esr ordering", "what index do I need"],
+      "example_queries": [
+        "which index type should I use for this query",
+        "design a compound index for this filter and sort",
+        "do I need a multikey or wildcard index",
+        "which compound index should I design for this filter, sort, and range query",
+        "how do I safely hide then drop an index"
+      ]
+    }
+  ],
+
+  "routes_one_hop_skills": {
+    "description": "Representative NL query -> skill id (Route B). Extra routing signal for the skill space, mirroring routes_one_hop for tools.",
+    "examples": [
+      { "query": "how do I read explain output and apply the ESR rule", "skill": "query-performance-tuning" },
+      { "query": "how do I find slow queries in production", "skill": "query-performance-tuning" },
+      { "query": "optimize this query and recommend an index", "skill": "query-optimizer" },
+      { "query": "how should I index this specific query", "skill": "query-optimizer" },
+      { "query": "which index type should I use for this query", "skill": "indexing" },
+      { "query": "design a compound index for this filter sort and range", "skill": "indexing" },
+      { "query": "verify this query uses an index and not a collection scan", "skill": "query-optimizer" },
+      { "query": "check the query plan for a collection scan", "skill": "query-optimizer" },
+      { "query": "help me write an aggregation pipeline", "skill": "natural-language-querying" },
+      { "query": "translate this sql to mongodb", "skill": "natural-language-querying" },
+      { "query": "set up the documentdb mcp server", "skill": "mcp-setup" },
+      { "query": "provision an azure documentdb cluster with bicep", "skill": "azure-deployment" },
+      { "query": "tune my connection pool size", "skill": "connection" },
+      { "query": "fix connection pool exhaustion", "skill": "connection" }
     ]
   },
 

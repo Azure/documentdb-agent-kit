@@ -37,7 +37,7 @@ If you find a hot shard, work back through this list to find which shape applies
 
 Before resharding, rule out cheaper causes:
 
-1. **Is one query pattern doing collection scans?** A single bad query can saturate one shard if it happens to route there. Run query stats / `explain()` on the heaviest queries. See `query-optimization/`.
+1. **Is one query pattern doing collection scans?** A single bad query can saturate one shard if it happens to route there. Run query stats / `explain()` on the heaviest queries. See `query-optimizer/`.
 2. **Is the index missing on the shard key?** If queries that include the shard key still scatter-gather, the index didn't get created (or got dropped). See [sharding-how-to-commands](sharding-how-to-commands.md).
 3. **Is a background job concentrated on one shard's data?** E.g., a nightly export filtering on one tenant. Reschedule or batch differently before resharding.
 4. **Confirm the metric is sustained, not a spike.** A 10-minute hot shard from a backup job isn't worth a reshard. A multi-day pattern is.

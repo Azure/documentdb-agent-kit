@@ -35,7 +35,7 @@ def require_container(container_name):
     DB_PASSWORD)."""
     if not kit.DB_PASSWORD:
         pytest.skip("No DB password configured — set DOCDB_PASSWORD or DB_PASSWORD "
-                    "(local demo: export DB_PASSWORD=Test1234)")
+                    "(e.g. export DB_PASSWORD='<your-password>')")
     if not kit.container_running(container_name):
         pytest.skip(f"DocumentDB container '{container_name}' is not running "
                     f"(start it, or pass --container / set DOCDB_CONTAINER)")

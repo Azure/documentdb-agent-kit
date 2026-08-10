@@ -3,7 +3,7 @@
 # and unused indexes, so index-redundancy-finder.sh has findings to report.
 #
 # Usage:
-#   export DB_PASSWORD=Test1234
+#   export DB_PASSWORD='<your-password>'
 #   bash scenarios/index-redundancy/seed.sh            # -> database "idx_test"
 #   bash scenarios/index-redundancy/seed.sh --db mydb --container NAME --password PASS
 set -uo pipefail
@@ -26,7 +26,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-[[ -z "$PASSWORD" ]] && { echo "Error: no password. Set DB_PASSWORD or pass --password (local demo: export DB_PASSWORD=Test1234)." >&2; exit 1; }
+[[ -z "$PASSWORD" ]] && { echo "Error: no password. Set DB_PASSWORD or pass --password (e.g. export DB_PASSWORD='<your-password>')." >&2; exit 1; }
 
 echo "Seeding redundant-index fixture into '${DB}' (container: ${CONTAINER}) ..."
 docker cp "$DIR/fixture-redundant-indexes.js" "${CONTAINER}:/tmp/fixture-redundant-indexes.js" >/dev/null

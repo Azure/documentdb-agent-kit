@@ -15,6 +15,8 @@ Skills follow the [Agent Skills](https://agentskills.io/) format and the kit shi
 
 👉 **Capabilities and skill catalog:** [`docs/SKILLS.md`](docs/SKILLS.md)
 
+👉 **New here? 10-minute quick start:** [Find & fix a slow query](docs/quickstart-find-and-fix-slow-queries.md) — run DocumentDB locally, load sample data, and let your AI assistant diagnose a `COLLSCAN` and fix it with one index (a full 50,000-document scan → a tiny index lookup).
+
 ## Diagnostic Toolbox — Quickstart
 
 Beyond the text skills, the kit ships **deterministic diagnostic scripts** and a
@@ -45,10 +47,10 @@ is baked in** — set `DB_PASSWORD` (or pass `--password`).
 
 ```bash
 # 0. start a local DocumentDB container (choose any password; the scripts read it)
+export DB_PASSWORD='<choose-a-password>'   # the scripts require this (or --password)
 docker run -dt --name documentdb-local -p 10260:10260 \
-  -e USERNAME=docdbadmin -e PASSWORD=Test1234 \
+  -e USERNAME=docdbadmin -e PASSWORD="$DB_PASSWORD" \
   ghcr.io/microsoft/documentdb/documentdb-local:latest
-export DB_PASSWORD=Test1234          # the scripts require this (or --password)
 
 # 1. seed demo data
 bash scenarios/ecommerce/seed.sh           # -> "ecommerce"
@@ -60,6 +62,9 @@ bash scripts/index-redundancy-finder.sh --db ecommerce
 
 # 3. or ask in natural language — the router picks the tool (no LLM, no container)
 bash knowledge-base/kb-route.sh --db contoso "why are my aggregations slow even though I have indexes"
+
+# the same router also picks the best text skill for guidance questions
+bash knowledge-base/kb-route.sh --skills   # or: kb-route.sh "how do I read explain output"
 ```
 
 Demo datasets are seeders under [`scenarios/`](scenarios/) (they plant the
@@ -80,7 +85,7 @@ skills/
     SKILL.md             # agent-facing activation + instructions
     references/          # reference docs the skill loads at runtime
 scripts/                 # diagnostic toolbox — read-only analyzers + seeders
-knowledge-base/          # NL → script router (kb.json + kb_route.py) + demo
+knowledge-base/          # NL → script + skill router (kb.json + kb_route.py) + demo
 scenarios/contoso/       # ready-to-run TOAST demo dataset (+ optional scaling-benchmark/)
 testing/                 # fixture-first regression suite for the scripts (pytest)
 token-tests/             # measured token savings of scripts vs text-skill workflows

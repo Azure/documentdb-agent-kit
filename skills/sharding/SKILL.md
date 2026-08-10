@@ -38,4 +38,4 @@ collection's expected size or throughput ≤ one physical shard's budget?
 
 - [Sharding for horizontal scalability in Azure DocumentDB](https://learn.microsoft.com/azure/documentdb/partitioning)
 - [Compute and storage in Azure DocumentDB](https://learn.microsoft.com/azure/documentdb/compute-storage)
-- Related: `indexing/` (index on the shard key), `query-optimization/` (single-shard vs scatter-gather queries), `high-availability/` (replica sets within each physical shard)
+- Related: `indexing/` (index on the shard key), `query-optimizer/` (single-shard vs scatter-gather queries), `high-availability/` (replica sets within each physical shard)

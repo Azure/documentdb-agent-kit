@@ -34,7 +34,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-[[ -z "$PASSWORD" ]] && { echo "Error: no password. Set DB_PASSWORD or pass --password (local demo: export DB_PASSWORD=Test1234)." >&2; exit 1; }
+[[ -z "$PASSWORD" ]] && { echo "Error: no password. Set DB_PASSWORD or pass --password (e.g. export DB_PASSWORD='<your-password>')." >&2; exit 1; }
 
 echo "Seeding base-size Contoso into '${DB}' (container: ${CONTAINER}) ..."
 docker cp "$DIR/contoso-seed.js" "${CONTAINER}:/tmp/contoso-seed.js" >/dev/null

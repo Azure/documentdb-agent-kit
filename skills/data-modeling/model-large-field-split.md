@@ -71,4 +71,4 @@ threshold after the split, and prints safe (batched, copy-before-delete, then
 ## References
 
 - Related: [model-embed-vs-reference](model-embed-vs-reference.md) (reference unbounded / independently-accessed data), [model-16mb-limit](model-16mb-limit.md).
-- `storage/` skill for the PostgreSQL storage layer; `query-optimization/` for verifying scan cost with `explain("executionStats")`.
+- `storage/` skill for the PostgreSQL storage layer; `query-optimizer/` for verifying scan cost with `explain("executionStats")`.

@@ -54,7 +54,7 @@ into that container, so no host ports are required.
 
 ```bash
 # 0. the scripts require a password — export it once (or pass --password)
-export DB_PASSWORD=Test1234
+export DB_PASSWORD='<your-password>'
 
 # 1. seed the demo database (base size ~500 opportunities)
 bash scenarios/contoso/seed.sh                 # -> database "contoso"

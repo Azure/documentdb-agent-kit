@@ -74,7 +74,7 @@ EOF
 done
 
 [[ -z "$DB" && "$ALL_DBS" != "true" ]] && { echo "Error: --db <name> or --all-dbs is required"; exit 1; }
-[[ -z "$PASSWORD" ]] && { echo "Error: no password. Set DB_PASSWORD or pass --password (local demo: export DB_PASSWORD=Test1234)." >&2; exit 1; }
+[[ -z "$PASSWORD" ]] && { echo "Error: no password. Set DB_PASSWORD or pass --password (e.g. export DB_PASSWORD='<your-password>')." >&2; exit 1; }
 
 # ── Helpers ───────────────────────────────────────────────────────────
 run_mongosh() {

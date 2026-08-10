@@ -51,7 +51,7 @@ Before sharding, confirm a properly-sized **single-shard** cluster cannot meet r
 
 - Project peak storage at the workload's 12–24 month horizon. Compare against the largest available storage SKU (currently up to 32 TB per shard). If the projection fits with headroom, stay single-shard.
 - Run the workload (or a representative load test) against the largest tier you'd consider. Measure sustained CPU, memory, IOPS, and request latency. If headroom remains, stay single-shard.
-- Confirm indexing is correct (see `indexing/`) and queries are not doing accidental collection scans (see `query-optimization/`). These problems look like "we need to shard" but aren't.
+- Confirm indexing is correct (see `indexing/`) and queries are not doing accidental collection scans (see `query-optimizer/`). These problems look like "we need to shard" but aren't.
 
 ### 2. Shard the right collections, not all of them
 

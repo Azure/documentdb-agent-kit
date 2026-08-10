@@ -2,7 +2,7 @@
 # seed.sh — Generate the large "ecommerce" demo dataset for perf/diagnostic testing
 # Creates: customers (5K), products (2K), orders (50K), order_items (150K),
 #          reviews (25K), inventory (4K)
-# Usage: export DB_PASSWORD=Test1234; bash scenarios/ecommerce/seed.sh [--container NAME] [--password PASS]
+# Usage: export DB_PASSWORD='<your-password>'; bash scenarios/ecommerce/seed.sh [--container NAME] [--password PASS]
 set -uo pipefail
 
 CONTAINER_NAME="${CONTAINER_NAME:-documentdb-local}"
@@ -22,7 +22,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-[[ -z "$PASSWORD" ]] && { echo "Error: no password. Set DB_PASSWORD or pass --password (local demo: export DB_PASSWORD=Test1234)." >&2; exit 1; }
+[[ -z "$PASSWORD" ]] && { echo "Error: no password. Set DB_PASSWORD or pass --password (e.g. export DB_PASSWORD='<your-password>')." >&2; exit 1; }
 
 run_mongosh() {
     docker exec -u documentdb "$CONTAINER_NAME" mongosh \

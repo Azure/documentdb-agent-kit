@@ -2,11 +2,13 @@
 name: documentdb-query-optimizer
 description: >-
   Help with DocumentDB/MongoDB query optimization and indexing for Azure
-  DocumentDB. Use only when the user asks for optimization or
-  performance: "How do I optimize this query?", "How do I index this?", "Why is
-  this query slow?", "Can you fix my slow queries?", etc. Do not invoke for
-  general query writing unless user asks for performance or index help. Prefer
-  indexing as optimization strategy. Use DocumentDB MCP when available.
+  DocumentDB. Use when the user asks for optimization or performance: "How do I
+  optimize this query?", "How do I index this?", "Why is this query slow?", "Can
+  you fix my slow queries?" — and also to **verify/validate** a query with
+  `explain("executionStats")`: "is this query using an index or doing a
+  COLLSCAN?", "check the query plan", "verify index usage". Do not invoke for
+  general query writing unless the user asks for performance or index help.
+  Prefer indexing as the optimization strategy. Use DocumentDB MCP when available.
 allowed-tools: mcp__documentdb__*
 ---
 
@@ -20,6 +22,8 @@ Invoke **only** when the user wants:
 - **Why** a query is slow or **how to speed it up**
 - **Slow queries** on their cluster and/or **how to optimize them**
 - Index recommendations or index review
+- To **verify** a query's plan: is it an `IXSCAN` or a `COLLSCAN`? is an index
+  actually being used? (validating index usage, e.g. in code review / CI)
 
 Do **not** invoke for routine query authoring unless the user has requested help
 with optimization, slow queries, or indexing.
@@ -28,17 +32,32 @@ with optimization, slow queries, or indexing.
 
 ### Help with a Specific Query
 
-If the user is asking about a particular query:
+**Order matters — check the plan first, and don't be fooled by confounders.**
+The very first thing to establish is *what the query is actually doing*, because
+the signals you read first are the ones most likely to mislead you.
 
-1. Use `list_indexes` (MCP) or `db.<coll>.getIndexes()` (mongosh) to get existing indexes on the collection
-2. Use `explain_operation` (MCP) or `.explain("executionStats")` (mongosh)
-   to get explain output with execution stats
-3. Use `find_documents` (MCP) or `db.<coll>.findOne()` (mongosh) to fetch a sample document to understand the
-   schema
+1. **Run `explain("executionStats")` first and read the SCAN stage.** Use
+   `explain_operation` (MCP) or `.explain("executionStats")` (mongosh). Determine
+   whether the query is a `COLLSCAN` or an `IXSCAN` **before** changing anything.
+   Watch these **confounders** — do not trust them at face value:
+   - ⚠️ **The top-line metrics lie.** On Azure DocumentDB the top-level
+     `executionTimeMillis` and `totalDocsExamined` are *post-sort/merge* and can
+     look fine during a full scan. **Drill into the nested `inputStage`** to the
+     `COLLSCAN`/`IXSCAN` and read *its* `totalDocsExamined`/`totalKeysExamined`.
+   - ⚠️ **An index existing ≠ the index being used.** Check `winningPlan.indexName`;
+     the planner may ignore an index that isn't selective for this shape.
+   - ⚠️ **Scatter-gather looks like a slow query.** On a sharded collection,
+     `shards[]` hitting every shard is the real cost — fix with the shard key in
+     the filter, not another index.
+2. **Then list existing indexes** — `list_indexes` (MCP) or `db.<coll>.getIndexes()`
+   (mongosh) — to know what's already available before recommending a new one.
+3. **Then sample a document** — `find_documents` (MCP) or `db.<coll>.findOne()`
+   (mongosh) — to understand the schema and field **cardinality** (selectivity),
+   which drives compound-index field order.
 
-Then make an optimization suggestion based on collected information and best
-practices from the reference files. Prefer creating an index that fully covers
-the query if possible.
+Only after 1–3 do you diagnose and make an optimization suggestion, using the
+best practices in the reference files. Prefer an index that fully covers the
+query if possible.
 
 ### General Performance Help
 
@@ -50,6 +69,12 @@ suggestions (not regarding any particular query):
 3. Use `get_statistics` with scope "index" (MCP) or `db.collection.aggregate([{$indexStats:{}}])` (mongosh) to check existing index usage
 4. Use `current_ops` (MCP) or `db.currentOp()` (mongosh) to see currently running operations
 5. Suggest reviewing the most-used collections for missing indexes
+
+To surface the slowest queries in **production**, use Diagnostic Logs routed to
+an Azure Log Analytics workspace and rank operations from the
+`VCoreMongoRequests` table by `DurationMs` — see the
+`documentdb-query-performance-tuning` skill (Step 0) and the
+`documentdb-monitoring` skill.
 
 ## MCP Tools Available
 
@@ -104,12 +129,22 @@ Before beginning diagnosis and recommendation, load reference files.
 Always load:
 
 - `references/core-indexing-principles.md`
+- `references/query-explain-plan.md` — verify index usage with `explain()` first,
+  and the confounders to distrust (top-line metrics, unused existing indexes,
+  scatter-gather); how to automate the check in CI.
+
+For the end-to-end tuning **methodology** (find slow queries via Log Analytics
+`VCoreMongoRequests`, read DocumentDB's Postgres-backed `explain` output, the
+`COLLSCAN → ESR → covered` walkthrough), see the companion
+**`documentdb-query-performance-tuning`** skill and its
+`references/documentdb-explain-output.md`.
 
 ## Diagnostic Workflow
 
 ### Step 1: Gather Information
 
-For a specific query, run these tools:
+For a specific query, run these tools **in this order — `explain` first** (see
+"High Level Workflow" for the confounders to watch while reading it):
 
 **Via MCP (when connected):**
 ```
@@ -155,6 +190,15 @@ db.<coll>.aggregate(<pipeline>).explain("executionStats")
 
 From the `explain("executionStats")` response (via MCP `explain_operation` or
 direct mongosh), extract:
+
+> **Reading a real Azure DocumentDB plan:** its planner is PostgreSQL-backed, so
+> the output (`explainVersion: 2`) carries fields community MongoDB does not —
+> `PARALLEL_SORT_MERGE`, `startupCost`/`totalCost`, `estimatedTotalKeysExamined`,
+> `runtimeFilterSet`, `numBlocksFromCache`, `indexUsage.scanLoops`/`scanType`,
+> `indexCosts`. The **top stage counts can look fine during a full scan** — drill
+> into the nested `inputStage` down to the `COLLSCAN`/`IXSCAN`. See the
+> `documentdb-query-performance-tuning` skill's
+> `references/documentdb-explain-output.md` for the full field reference.
 
 - **metrics**: `totalKeysExamined`, `totalDocsExamined`, `nReturned`,
   `executionTimeMillis`

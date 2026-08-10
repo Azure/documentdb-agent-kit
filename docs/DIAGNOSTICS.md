@@ -26,14 +26,14 @@ password; the scripts read it from `DB_USER` (default `docdbadmin`) and
 `DB_PASSWORD` — **nothing is baked in**:
 
 ```bash
+# the scripts require a password — export it once (or pass --password each time)
+export DB_PASSWORD='<choose-a-password>'
+
 docker run -dt --name documentdb-local \
   -p 10260:10260 \
   -e USERNAME=docdbadmin \
-  -e PASSWORD=Test1234 \
+  -e PASSWORD="$DB_PASSWORD" \
   ghcr.io/microsoft/documentdb/documentdb-local:latest
-
-# the scripts require a password — export it once (or pass --password each time)
-export DB_PASSWORD=Test1234
 
 # preflight: confirm the engine answers (should print "1")
 docker exec documentdb-local psql -h localhost -p 9712 -U documentdb -d postgres -tAc "SELECT 1"
@@ -96,7 +96,7 @@ python3 knowledge-base/kb_route_demo.py "which indexes can I drop"
 # apply the schema split the advisor recommends, then re-run the advisor
 docker cp scenarios/contoso/contoso-split-fix.js documentdb-local:/tmp/fix.js
 docker exec -e CONTOSO_DB=contoso documentdb-local mongosh \
-  "localhost:10260/contoso" -u docdbadmin -p Test1234 \
+  "localhost:10260/contoso" -u docdbadmin -p "$DB_PASSWORD" \
   --authenticationMechanism SCRAM-SHA-256 --tls --tlsAllowInvalidCertificates \
   --quiet --file /tmp/fix.js
 bash scripts/document-bloat-advisor.sh --db contoso     # opportunities now clean
