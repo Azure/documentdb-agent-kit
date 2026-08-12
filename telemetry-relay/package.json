@@ -1,0 +1,15 @@
+{
+  "name": "documentdb-agent-kit-telemetry-relay",
+  "version": "1.0.0",
+  "description": "Serverless relay that forwards anonymous, opt-in install events from the documentdb-agent-kit installers to Application Insights. The App Insights connection string lives ONLY in Function app settings — never in this repo or any shipped client.",
+  "private": true,
+  "main": "src/functions/*.js",
+  "scripts": {
+    "start": "func start",
+    "test": "echo \"no tests\" && exit 0"
+  },
+  "dependencies": {
+    "@azure/functions": "^4.5.0",
+    "applicationinsights": "^3.3.0"
+  }
+}
