@@ -211,18 +211,13 @@ Full stage-by-stage guide, from a Docker-only build through to a published
 
 ```bash
 cd benchmarks/documentdb-sdk-skills
-docker build -f shared/base/Dockerfile -t documentdb-orders-base:latest .
-cd tasks/orders-api-python
-docker build -f environment/Dockerfile -t documentdb-orders-api-python:latest .
-
-# Positive control: the oracle must score 1
-docker run --rm documentdb-orders-api-python:latest \
-  bash -c '/solution/solve.sh && /tests/test.sh; cat /logs/verifier/reward.txt'
-
-# Negative control: an empty /app must score 0
-docker run --rm documentdb-orders-api-python:latest \
-  bash -c '/tests/test.sh; cat /logs/verifier/reward.txt'
+bash build.sh
+bash verify-controls.sh
 ```
+
+The build and verification entrypoints pin containers to `linux/amd64` because
+the benchmark's vendored Python wheels and checksum-verified `mongosh` archive
+are x86-64. Docker Desktop uses amd64 emulation automatically on Apple Silicon.
 
 `--backend local` lets MSBench run harbor-native benchmarks entirely on your
 machine, so the whole benchmark can be iterated **without** pushing to the

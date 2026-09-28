@@ -542,6 +542,23 @@ def test_build_entrypoint_stages_every_generated_docker_input():
     assert 'cp -r .wheels tasks/orders-api-python/.wheels' in build
 
 
+def test_build_entrypoint_pins_the_x86_64_benchmark_platform():
+    """The vendored wheels and pinned mongosh archive are x86-64.
+
+    Without an explicit platform Docker selects an arm64 base image on Apple
+    Silicon, then fails when the Dockerfile executes the x64 mongosh binary.
+    Both images must use the same amd64 platform so local reproduction matches
+    the MSBench environment.
+    """
+    build = (BENCH / "build.sh").read_text()
+    verify = (BENCH / "verify-controls.sh").read_text()
+
+    assert 'BENCHMARK_PLATFORM="linux/amd64"' in build
+    assert build.count('--platform "$BENCHMARK_PLATFORM"') == 2
+    assert 'BENCHMARK_PLATFORM="linux/amd64"' in verify
+    assert 'docker run --rm --platform "$BENCHMARK_PLATFORM"' in verify
+
+
 # ---------------------------------------------------------------------------
 # committed results
 #
