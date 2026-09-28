@@ -31,6 +31,11 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$HERE/../.." && pwd)"
 BASE_TAG="${BASE_TAG:-documentdb-orders-base:latest}"
 TASK_TAG="${TASK_TAG:-documentdb-orders-api-python:latest}"
+# The benchmark inputs are intentionally x86-64: vendor-wheels.sh downloads
+# manylinux x86_64 wheels and the Dockerfile installs the pinned x64 mongosh
+# archive. Pin both builds so Docker Desktop uses amd64 emulation on arm64
+# hosts instead of combining an arm64 base image with x86-64 dependencies.
+BENCHMARK_PLATFORM="linux/amd64"
 
 cd "$HERE"
 
@@ -50,7 +55,8 @@ bash shared/base/vendor-wheels.sh .wheels
 # ---------------------------------------------------------------------------
 echo "==> Building base image: $BASE_TAG"
 # ---------------------------------------------------------------------------
-docker build -f shared/base/Dockerfile -t "$BASE_TAG" .
+docker build --platform "$BENCHMARK_PLATFORM" \
+    -f shared/base/Dockerfile -t "$BASE_TAG" .
 
 if [ "${1:-}" = "--base-only" ]; then
     echo "==> base image built; stopping (--base-only)"
@@ -64,7 +70,8 @@ echo "==> Building task image: $TASK_TAG"
 # dependencies, so it also builds with no network.
 cp -r .wheels tasks/orders-api-python/.wheels
 trap 'rm -rf "$HERE/tasks/orders-api-python/.wheels"' EXIT
-docker build -f tasks/orders-api-python/environment/Dockerfile \
+docker build --platform "$BENCHMARK_PLATFORM" \
+    -f tasks/orders-api-python/environment/Dockerfile \
     -t "$TASK_TAG" tasks/orders-api-python
 
 echo

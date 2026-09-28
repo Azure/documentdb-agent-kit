@@ -24,6 +24,7 @@ set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TASK_DIR="$HERE/tasks/orders-api-python"
 IMAGE="${TASK_TAG:-documentdb-orders-api-python:latest}"
+BENCHMARK_PLATFORM="linux/amd64"
 ONLY=""
 RESULT_JSON=""
 while [ $# -gt 0 ]; do
@@ -54,7 +55,7 @@ run_control() {
     echo "══════════════════════════════════════════════════════════════"
 
     local out
-    out=$(docker run --rm \
+    out=$(docker run --rm --platform "$BENCHMARK_PLATFORM" \
         -v "$TASK_DIR/tests:/tests:ro" \
         -v "$TASK_DIR/solution:/solution:ro" \
         -v "$HERE/controls:/controls:ro" \
