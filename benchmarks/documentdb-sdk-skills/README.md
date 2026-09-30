@@ -209,6 +209,13 @@ Full stage-by-stage guide, from a Docker-only build through to a published
 
 ## Building and running locally
 
+On macOS, use Docker Desktop and Python 3 with `pip` (plus Bash, included with
+macOS). Run these commands from a terminal; `apt-get` runs only **inside** the
+Ubuntu-based Docker image, never on your Mac. The host stages Linux wheels for
+the image with `python3 -m pip download`; no host package manager is invoked.
+For the complete MacBook handoff (live regression tests, build, controls, and
+results to collect), see [Testing on a MacBook](../../docs/TESTING-MACOS.md).
+
 ```bash
 cd benchmarks/documentdb-sdk-skills
 bash build.sh

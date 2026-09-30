@@ -31,9 +31,8 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$HERE/../.." && pwd)"
 BASE_TAG="${BASE_TAG:-documentdb-orders-base:latest}"
 TASK_TAG="${TASK_TAG:-documentdb-orders-api-python:latest}"
-# Build for the Docker host by default. The published MSBench images remain
-# x86_64 (orders.toml); BENCHMARK_PLATFORM=linux/amd64 reproduces those images
-# on an ARM host with emulation.
+# Build for the Docker host by default. Published MSBench images remain
+# x86_64 (orders.toml); validate those on an AMD64 host, not under ARM emulation.
 if [ -z "${BENCHMARK_PLATFORM:-}" ]; then
     case "$(docker info --format '{{.Architecture}}')" in
         amd64|x86_64) BENCHMARK_PLATFORM="linux/amd64" ;;

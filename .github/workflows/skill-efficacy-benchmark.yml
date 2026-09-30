@@ -43,7 +43,10 @@ jobs:
   # -------------------------------------------------------------------------
   validate:
     name: Benchmark structure (free)
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
 
@@ -62,17 +65,21 @@ jobs:
 
       - name: Lint shell entrypoints
         run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+          if ! command -v shellcheck >/dev/null 2>&1; then
+            case "$RUNNER_OS" in
+              Linux) sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck ;;
+              macOS) brew install shellcheck ;;
+              *) echo "Unsupported lint runner: $RUNNER_OS" >&2; exit 1 ;;
+            esac
+          fi
           # Lint EVERY shell script under benchmarks/, not a hand-maintained
           # list. An explicit list silently stops covering new scripts, which is
           # how a real bug (an agent prompt that was never passed, SC2034) sat
           # unlinted in the route-efficiency harness.
           #
           # SC1091: sourced files live inside the container image, not the repo.
-          mapfile -t scripts < <(find benchmarks -name '*.sh' -type f | sort)
-          printf 'linting %d script(s)\n' "${#scripts[@]}"
-          printf '  %s\n' "${scripts[@]}"
-          shellcheck -e SC1091 "${scripts[@]}"
+          printf 'linting %s script(s)\n' "$(find benchmarks -name '*.sh' -type f | wc -l)"
+          find benchmarks -name '*.sh' -type f -exec shellcheck -e SC1091 {} +
 
   # -------------------------------------------------------------------------
   oracle:

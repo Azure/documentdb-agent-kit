@@ -519,6 +519,24 @@ def test_oracle_workflow_uses_the_supported_build_entrypoint():
     assert "docker run --rm --name empty" not in workflow
 
 
+def test_benchmark_validation_runs_on_macos_without_host_apt():
+    import yaml
+
+    workflow = yaml.safe_load(BENCHMARK_WORKFLOW.read_text())
+    validate = workflow["jobs"]["validate"]
+    assert set(validate["strategy"]["matrix"]["os"]) == {
+        "ubuntu-latest", "macos-latest",
+    }
+    lint = next(
+        step["run"] for step in validate["steps"]
+        if step.get("name") == "Lint shell entrypoints"
+    )
+    assert 'Linux) sudo apt-get' in lint
+    assert 'macOS) brew install shellcheck' in lint
+    assert "find benchmarks -name '*.sh' -type f -exec shellcheck" in lint
+    assert "mapfile" not in lint
+
+
 def test_azure_login_action_is_pinned_to_an_immutable_commit():
     workflow = BENCHMARK_WORKFLOW.read_text()
     match = re.search(r"uses:\s*azure/login@([0-9a-f]{40})(?:\s+#\s*(\S+))?", workflow)

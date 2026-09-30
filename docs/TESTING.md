@@ -25,6 +25,10 @@ control. Applying either standard to the other produces nonsense.
 
 ## Prerequisites
 
+For a step-by-step handoff on Apple Silicon or Intel MacBooks, including the
+live database fixture and benchmark controls, see
+[Testing on a MacBook](TESTING-MACOS.md).
+
 The `static` scenarios in the Diagnostic Regression Suite need **nothing at
 all**. Everything else needs a running container.
 
@@ -256,6 +260,10 @@ Cross-Model Skill Evaluation cost module.
 No Docker, no MSBench access, no network.
 
 ### Local — needs Docker
+
+On macOS, use Docker Desktop and Python 3 with `pip`. Package installation
+via `apt-get` takes place inside the benchmark's Ubuntu container, not on
+your laptop; the host scripts do not install system packages.
 
 ```bash
 cd benchmarks/documentdb-sdk-skills

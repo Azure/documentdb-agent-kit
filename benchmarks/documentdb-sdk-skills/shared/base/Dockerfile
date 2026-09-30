@@ -17,7 +17,8 @@
 # coaxed into running as an unprivileged user. DocumentDB Local is a plain
 # Ubuntu container we already run daily in the kit's test suite, and its base
 # layer is PUBLIC — so anyone can reproduce this image even though the MSBench
-# harness itself is Microsoft-internal.
+# harness itself is Microsoft-internal. Package installation below runs inside
+# this Ubuntu image, not on the host (which may be macOS).
 
 # Pinned from ghcr.io/microsoft/documentdb/documentdb-local:latest on
 # 2026-09-22. Update deliberately and rerun the benchmark controls when the
