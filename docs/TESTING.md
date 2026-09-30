@@ -265,9 +265,9 @@ bash verify-controls.sh
 
 The local build selects the Docker host's architecture. On ARM64 it vendors
 ARM64 wheels and a checksum-verified ARM64 `mongosh`, and the controls run that
-image natively. Set `BENCHMARK_PLATFORM=linux/amd64` on both commands to
-reproduce the published x86-64 MSBench image with emulation; this requires
-binfmt/QEMU on Linux ARM64. The MSBench registry and dataset remain x86-64.
+image natively. **AMD64-on-ARM emulation is not supported**; use an AMD64 host
+to validate the published x86-64 MSBench image. The MSBench registry and
+dataset remain x86-64.
 
 Both controls matter. A grader that cannot be satisfied makes every score
 meaningless; a grader that never fails is worthless.

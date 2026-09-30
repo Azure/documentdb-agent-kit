@@ -82,6 +82,11 @@ script tests in [`testing/`](testing/README.md) and cross-model skill evals in
 [`benchmarks/`](benchmarks/documentdb-sdk-skills/README.md) — all described in
 [`docs/TESTING.md`](docs/TESTING.md).
 
+> **Benchmark platform support:** Run the SDK benchmark natively on an ARM64
+> or AMD64 host. Running its AMD64 images on an ARM64 host via emulation is
+> **not supported**; use an AMD64 runner to validate the published x86-64
+> MSBench images. See the [ARM64 test report](docs/ARM64-BENCHMARK-REPORT.md).
+
 - **Router:** [`knowledge-base/README.md`](knowledge-base/README.md) · **Demo datasets:** [`scenarios/`](scenarios/)
 - **Testing:** [`docs/TESTING.md`](docs/TESTING.md) · **Route cost study:** [`benchmarks/documentdb-route-efficiency/`](benchmarks/documentdb-route-efficiency/README.md)
 - **DocumentDB compatibility quick-start:** [`compat/`](compat/QUICKSTART.md) — run a MongoDB-compatible Node.js e-commerce project end-to-end on DocumentDB.
