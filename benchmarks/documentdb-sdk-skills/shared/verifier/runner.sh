@@ -88,7 +88,7 @@ section "4. Run"
 ( cd "$APP_DIR" && ./run.sh ) >"$LOG_DIR/app.log" 2>&1 &
 APP_PID=$!
 
-# shellcheck disable=SC2317  # invoked indirectly by the EXIT trap below
+# shellcheck disable=SC2317,SC2329  # invoked indirectly by the EXIT trap below
 cleanup() {
     # Stop the agent's app when the verifier exits, however it exits — success,
     # early `fail`, or a timeout. Without this the app keeps holding the port
