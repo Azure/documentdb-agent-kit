@@ -60,7 +60,7 @@ git rev-parse HEAD > "$RESULTS/kit-commit.txt"
 dependencies. These checks do not need the database:
 
 ```bash
-bash testing/run.sh -q \
+bash testing/run.sh \
   scenarios/benchmark-config scenarios/benchmark-metrics \
   scenarios/evals-config scenarios/route-efficiency \
   > "$RESULTS/static-tests.log" 2>&1
@@ -144,7 +144,7 @@ for ((attempt=0; attempt<120; attempt++)); do
   sleep 5
 done
 if [ "$READY" -ne 1 ]; then echo "DocumentDB did not become ready" >&2; exit 1; fi
-bash testing/run.sh -q > "$RESULTS/live-regression.log" 2>&1
+bash testing/run.sh > "$RESULTS/live-regression.log" 2>&1
 echo "$?" > "$RESULTS/live-regression.exit"
 cat "$RESULTS/live-regression.exit"
 tail -40 "$RESULTS/live-regression.log"

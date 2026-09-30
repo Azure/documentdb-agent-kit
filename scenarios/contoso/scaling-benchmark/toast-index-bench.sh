@@ -40,7 +40,7 @@ mongo() {
 }
 psql_q() {
     docker exec "$CONTAINER" psql -h localhost -p "$PG_PORT" -U "$PG_USER" -d postgres \
-        -t --no-align -F $'\t' -c "$1" 2>/dev/null | grep -vE '^(SET|)$'
+        -t --no-align -F $'\t' -c "$1" 2>/dev/null | grep -vE '^(SET)?$'
 }
 
 # copy the probe into the container once

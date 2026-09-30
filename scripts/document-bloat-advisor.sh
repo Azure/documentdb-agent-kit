@@ -74,7 +74,7 @@ run_psql() {
         docdb_exec_stdin_as "" psql -h localhost -p "$PG_PORT" -U "$PG_USER" \
             -d "$PG_DB" -v ON_ERROR_STOP=1 -t --no-align -F $'\t' "$@" \
             2>/dev/null |
-        grep -vE '^(SET|)$'
+        grep -vE '^(SET)?$'
 }
 
 # ── Per-collection heap/TOAST from PostgreSQL (measured facts) ──────────────

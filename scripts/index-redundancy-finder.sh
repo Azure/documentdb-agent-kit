@@ -187,11 +187,11 @@ ORDER BY c.collection_name, ci.index_id
 # We'll process in awk and emit JSON findings
 
 # Combined analysis pipeline:
-FINDINGS=$(echo "$MONGO_INDEXES" | awk -v pg_stats="$PG_STATS" -v db="$CURRENT_DB" '
+FINDINGS=$(echo "$MONGO_INDEXES" | PG_STATS="$PG_STATS" awk -v db="$CURRENT_DB" '
 BEGIN {
     FS="\t";
     # Parse PG stats into associative arrays
-    n_pg = split(pg_stats, pg_lines, "\n");
+    n_pg = split(ENVIRON["PG_STATS"], pg_lines, "\n");
     for (i=1; i<=n_pg; i++) {
         line = pg_lines[i];
         if (length(line) == 0) continue;

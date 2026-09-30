@@ -19,6 +19,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -143,8 +144,11 @@ def seed(db, fixture_path, container=CONTAINER, timeout=300):
     out = (p.stdout or "") + (p.stderr or "")
     if p.returncode != 0:
         raise RuntimeError(f"fixture seed failed (rc={p.returncode}):\n{out}")
+    seeded_at = time.monotonic()
     # Settle planner statistics before anything measures a query plan.
     analyze(container=container)
+    # PostgreSQL can delay publishing a seeded backend's index scans for 10s.
+    time.sleep(max(0.0, 11 - (time.monotonic() - seeded_at)))
     return out
 
 
