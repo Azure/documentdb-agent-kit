@@ -1,8 +1,6 @@
 # ARM64 benchmark verification (2026-09-30)
 
-Source: `lionelc/documentdb-agent-kit`, branch
-`import-cosmos-test-framework`, starting commit
-`63ded39fabfd99d87fe6802f33392c07cbeba383`. Tests ran on Linux
+`Tests ran on Linux
 `aarch64`, Docker 29.1.3, Python 3.12.3. The local DocumentDB image was
 the repository's pinned multi-architecture digest
 `sha256:0fcf634531c1917ad0855ff9f4354aca0a5c5d8e435f08250568deb37eeb0ad5`.
