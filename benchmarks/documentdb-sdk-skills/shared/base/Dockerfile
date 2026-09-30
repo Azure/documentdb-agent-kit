@@ -22,7 +22,8 @@
 # Pinned from ghcr.io/microsoft/documentdb/documentdb-local:latest on
 # 2026-09-22. Update deliberately and rerun the benchmark controls when the
 # base changes; a mutable tag would silently change the published environment.
-FROM ghcr.io/microsoft/documentdb/documentdb-local@sha256:0fcf634531c1917ad0855ff9f4354aca0a5c5d8e435f08250568deb37eeb0ad5
+ARG DOCUMENTDB_BASE_IMAGE=ghcr.io/microsoft/documentdb/documentdb-local@sha256:0fcf634531c1917ad0855ff9f4354aca0a5c5d8e435f08250568deb37eeb0ad5
+FROM ${DOCUMENTDB_BASE_IMAGE}
 
 USER root
 WORKDIR /
@@ -34,7 +35,9 @@ ENTRYPOINT []
 CMD ["/bin/bash"]
 
 ARG MONGOSH_VERSION=2.3.8
-ARG MONGOSH_SHA256=23edb768189663aaa9732a2340a25b5fc05a314940538809a7840be7f2ce221f
+ARG TARGETARCH
+ARG MONGOSH_SHA256_AMD64=23edb768189663aaa9732a2340a25b5fc05a314940538809a7840be7f2ce221f
+ARG MONGOSH_SHA256_ARM64=8a30ec1833343985d3d5901bb31cbb9e8e8193200dc08a5bddde343b601b7690
 
 RUN set -eux; \
     apt-get update; \
@@ -61,13 +64,18 @@ RUN set -eux; \
 # so a changed upstream file cannot silently alter the benchmark image.
 # ---------------------------------------------------------------------------
 RUN set -eux; \
-    curl -fsSL "https://downloads.mongodb.com/compass/mongosh-${MONGOSH_VERSION}-linux-x64.tgz" \
+    case "$TARGETARCH" in \
+        amd64) archive_arch=x64; digest="$MONGOSH_SHA256_AMD64" ;; \
+        arm64) archive_arch=arm64; digest="$MONGOSH_SHA256_ARM64" ;; \
+        *) echo "Unsupported architecture: $TARGETARCH" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSL "https://downloads.mongodb.com/compass/mongosh-${MONGOSH_VERSION}-linux-${archive_arch}.tgz" \
         -o /tmp/mongosh.tgz; \
-    echo "${MONGOSH_SHA256}  /tmp/mongosh.tgz" | sha256sum -c -; \
+    echo "${digest}  /tmp/mongosh.tgz" | sha256sum -c -; \
     tar xzf /tmp/mongosh.tgz -C /tmp; \
-    cp "/tmp/mongosh-${MONGOSH_VERSION}-linux-x64/bin/mongosh" /usr/local/bin/mongosh; \
-    cp "/tmp/mongosh-${MONGOSH_VERSION}-linux-x64/bin/mongosh_crypt_v1.so" /usr/local/lib/ || true; \
-    rm -rf /tmp/mongosh.tgz "/tmp/mongosh-${MONGOSH_VERSION}-linux-x64"; \
+    cp "/tmp/mongosh-${MONGOSH_VERSION}-linux-${archive_arch}/bin/mongosh" /usr/local/bin/mongosh; \
+    cp "/tmp/mongosh-${MONGOSH_VERSION}-linux-${archive_arch}/bin/mongosh_crypt_v1.so" /usr/local/lib/ || true; \
+    rm -rf /tmp/mongosh.tgz "/tmp/mongosh-${MONGOSH_VERSION}-linux-${archive_arch}"; \
     test "$(mongosh --version | tr -d '\r')" = "${MONGOSH_VERSION}"
 
 # ---------------------------------------------------------------------------
@@ -88,7 +96,7 @@ RUN set -eux; \
 # does not have that flag (it arrived in pip 23 for PEP 668). Jammy is not
 # externally-managed, so a plain install is correct here.
 # ---------------------------------------------------------------------------
-COPY .wheels /opt/wheels
+COPY .wheels/${TARGETARCH} /opt/wheels
 # psycopg is what makes check_engine.py possible: it reads the PostgreSQL
 # engine underneath the Mongo API, a second observation plane the Cosmos
 # benchmark does not have.

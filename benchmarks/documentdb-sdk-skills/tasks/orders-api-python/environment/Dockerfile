@@ -1,4 +1,5 @@
-FROM documentdb-orders-base:latest
+ARG DOCUMENTDB_BENCH_BASE=documentdb-orders-base:latest
+FROM ${DOCUMENTDB_BENCH_BASE}
 
 ENV SDK="python"
 

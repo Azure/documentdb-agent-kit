@@ -24,6 +24,11 @@
 set -euo pipefail
 
 DEST="${1:-.wheels}"
+case "${VENDOR_ARCH:-amd64}" in
+    amd64) WHEEL_PLATFORM="manylinux2014_x86_64" ;;
+    arm64) WHEEL_PLATFORM="manylinux2014_aarch64" ;;
+    *) echo "Unsupported VENDOR_ARCH: $VENDOR_ARCH" >&2; exit 1 ;;
+esac
 
 # Pinned, and shared by the base image (verifier) and the task image
 # (reference app). One list keeps them from drifting apart.
@@ -57,7 +62,7 @@ fi
 echo "    resolving ${#PACKAGES[@]} pinned packages into $DEST"
 
 # Target the image's interpreter, not the host's: the container is Ubuntu 22.04
-# (CPython 3.10, manylinux x86_64). Without these constraints pip would happily
+# (CPython 3.10). Without these constraints pip would happily
 # fetch wheels for the host's Python and they would not import in the image.
 PYVER="${VENDOR_PYTHON_VERSION:-310}"
 
@@ -67,7 +72,7 @@ if ! python3 -m pip download \
         --python-version "$PYVER" \
         --implementation cp \
         --abi "cp${PYVER}" \
-        --platform manylinux2014_x86_64 \
+        --platform "$WHEEL_PLATFORM" \
         "${PACKAGES[@]}" 2>&1 | tail -5; then
     echo
     echo "vendor-wheels: download FAILED." >&2

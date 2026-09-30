@@ -24,7 +24,6 @@ set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TASK_DIR="$HERE/tasks/orders-api-python"
 IMAGE="${TASK_TAG:-documentdb-orders-api-python:latest}"
-BENCHMARK_PLATFORM="linux/amd64"
 ONLY=""
 RESULT_JSON=""
 while [ $# -gt 0 ]; do
@@ -37,6 +36,12 @@ done
 
 if ! docker image inspect "$IMAGE" >/dev/null 2>&1; then
     echo "Image $IMAGE not found. Run:  bash build.sh" >&2
+    exit 1
+fi
+IMAGE_ARCH="$(docker image inspect "$IMAGE" --format '{{.Architecture}}')"
+BENCHMARK_PLATFORM="${BENCHMARK_PLATFORM:-linux/$IMAGE_ARCH}"
+if [ "$BENCHMARK_PLATFORM" != "linux/$IMAGE_ARCH" ]; then
+    echo "Image $IMAGE is linux/$IMAGE_ARCH, not $BENCHMARK_PLATFORM. Rebuild for the requested platform." >&2
     exit 1
 fi
 

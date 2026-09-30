@@ -35,6 +35,11 @@ cd evals && npm install
 export VALLY_TELEMETRY_OPTOUT=1 DO_NOT_TRACK=1   # see "Telemetry" below
 ```
 
+Use Node.js 22+ and npm 11.11.1+ (the pinned Vally CLI requires both).
+The system Node.js 18 on some ARM64 Linux hosts cannot parse Vally's
+`import ... with { type: "json" }` syntax. An official ARM64 Node.js 24
+distribution works without changing the evaluation configuration.
+
 **For real (non-mock) runs** the Copilot SDK executor needs an auth token in the
 environment (`COPILOT_SDK_AUTH_TOKEN`); without it a run fails with
 `Session was not created with authentication info or custom provider`.

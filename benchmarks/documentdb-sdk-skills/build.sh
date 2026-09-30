@@ -31,11 +31,30 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$HERE/../.." && pwd)"
 BASE_TAG="${BASE_TAG:-documentdb-orders-base:latest}"
 TASK_TAG="${TASK_TAG:-documentdb-orders-api-python:latest}"
-# The benchmark inputs are intentionally x86-64: vendor-wheels.sh downloads
-# manylinux x86_64 wheels and the Dockerfile installs the pinned x64 mongosh
-# archive. Pin both builds so Docker Desktop uses amd64 emulation on arm64
-# hosts instead of combining an arm64 base image with x86-64 dependencies.
-BENCHMARK_PLATFORM="linux/amd64"
+# Build for the Docker host by default. The published MSBench images remain
+# x86_64 (orders.toml); BENCHMARK_PLATFORM=linux/amd64 reproduces those images
+# on an ARM host with emulation.
+if [ -z "${BENCHMARK_PLATFORM:-}" ]; then
+    case "$(docker info --format '{{.Architecture}}')" in
+        amd64|x86_64) BENCHMARK_PLATFORM="linux/amd64" ;;
+        arm64|aarch64) BENCHMARK_PLATFORM="linux/arm64" ;;
+        *) echo "Unsupported Docker host architecture" >&2; exit 1 ;;
+    esac
+fi
+case "$BENCHMARK_PLATFORM" in
+    linux/amd64)
+        BENCHMARK_ARCH="amd64"
+        BASE_DIGEST="2dd1f8875e59b77a679dac82c1b3e7b2179f920db702515f006a82397d9e3b13"
+        ;;
+    linux/arm64)
+        BENCHMARK_ARCH="arm64"
+        BASE_DIGEST="325f0149969d583128cc6b773b1d41e191083d8b21bc34d72816b12a4d1c8f61"
+        ;;
+    *) echo "Unsupported BENCHMARK_PLATFORM: $BENCHMARK_PLATFORM" >&2; exit 1 ;;
+esac
+# Both child digests are from the pinned DocumentDB image index. A legacy
+# Docker builder can otherwise reuse a cached arm64 index for an amd64 build.
+BASE_IMAGE="ghcr.io/microsoft/documentdb/documentdb-local@sha256:$BASE_DIGEST"
 
 cd "$HERE"
 
@@ -50,13 +69,21 @@ echo "    staged $(find .skills -name SKILL.md | wc -l) skills"
 # ---------------------------------------------------------------------------
 echo "==> Vendoring Python wheels"
 # ---------------------------------------------------------------------------
-bash shared/base/vendor-wheels.sh .wheels
+VENDOR_ARCH="$BENCHMARK_ARCH" \
+    bash shared/base/vendor-wheels.sh ".wheels/$BENCHMARK_ARCH"
 
 # ---------------------------------------------------------------------------
 echo "==> Building base image: $BASE_TAG"
 # ---------------------------------------------------------------------------
 docker build --platform "$BENCHMARK_PLATFORM" \
+    --build-arg "TARGETARCH=$BENCHMARK_ARCH" \
+    --build-arg "DOCUMENTDB_BASE_IMAGE=$BASE_IMAGE" \
     -f shared/base/Dockerfile -t "$BASE_TAG" .
+BUILT_ARCH="$(docker image inspect "$BASE_TAG" --format '{{.Architecture}}')"
+if [ "$BUILT_ARCH" != "$BENCHMARK_ARCH" ]; then
+    echo "Base image architecture is $BUILT_ARCH, expected $BENCHMARK_ARCH" >&2
+    exit 1
+fi
 
 if [ "${1:-}" = "--base-only" ]; then
     echo "==> base image built; stopping (--base-only)"
@@ -68,11 +95,17 @@ echo "==> Building task image: $TASK_TAG"
 # ---------------------------------------------------------------------------
 # The task image reuses the base's vendored wheels for the reference app's
 # dependencies, so it also builds with no network.
-cp -r .wheels tasks/orders-api-python/.wheels
+cp -r ".wheels/$BENCHMARK_ARCH" tasks/orders-api-python/.wheels
 trap 'rm -rf "$HERE/tasks/orders-api-python/.wheels"' EXIT
 docker build --platform "$BENCHMARK_PLATFORM" \
+    --build-arg "DOCUMENTDB_BENCH_BASE=$BASE_TAG" \
     -f tasks/orders-api-python/environment/Dockerfile \
     -t "$TASK_TAG" tasks/orders-api-python
+BUILT_ARCH="$(docker image inspect "$TASK_TAG" --format '{{.Architecture}}')"
+if [ "$BUILT_ARCH" != "$BENCHMARK_ARCH" ]; then
+    echo "Task image architecture is $BUILT_ARCH, expected $BENCHMARK_ARCH" >&2
+    exit 1
+fi
 
 echo
 echo "Built:"

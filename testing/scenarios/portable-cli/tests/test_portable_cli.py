@@ -118,7 +118,11 @@ def test_ci_and_benchmark_pin_the_same_mongosh_version():
     assert "ARG MONGOSH_VERSION=2.3.8" in dockerfile
     digest = "23edb768189663aaa9732a2340a25b5fc05a314940538809a7840be7f2ce221f"
     assert f'MONGOSH_SHA256: "{digest}"' in workflow
-    assert f"ARG MONGOSH_SHA256={digest}" in dockerfile
+    assert f"ARG MONGOSH_SHA256_AMD64={digest}" in dockerfile
+    assert (
+        "ARG MONGOSH_SHA256_ARM64="
+        "8a30ec1833343985d3d5901bb31cbb9e8e8193200dc08a5bddde343b601b7690"
+    ) in dockerfile
     assert "sha256sum -c -" in workflow
     assert "sha256sum -c -" in dockerfile
     assert "INSTALLED_VERSION=" in workflow
@@ -143,5 +147,6 @@ def test_ci_and_benchmark_pin_documentdb_image_digest():
     )
 
     assert f'DOCUMENTDB_LOCAL_IMAGE: "{image}"' in workflow
-    assert f"FROM {image}" in dockerfile
+    assert f"ARG DOCUMENTDB_BASE_IMAGE={image}" in dockerfile
+    assert "FROM ${DOCUMENTDB_BASE_IMAGE}" in dockerfile
     assert "documentdb-local:latest" not in workflow

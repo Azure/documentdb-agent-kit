@@ -534,29 +534,37 @@ def test_azure_login_action_is_pinned_to_an_immutable_commit():
 def test_build_entrypoint_stages_every_generated_docker_input():
     dockerfile = (BENCH / "shared" / "base" / "Dockerfile").read_text()
     build = (BENCH / "build.sh").read_text()
+    task_dockerfile = (TASK / "environment" / "Dockerfile").read_text()
 
-    assert "COPY .wheels " in dockerfile
+    assert "COPY .wheels/${TARGETARCH} " in dockerfile
     assert "COPY .skills " in dockerfile
-    assert 'bash shared/base/vendor-wheels.sh .wheels' in build
+    assert 'bash shared/base/vendor-wheels.sh ".wheels/$BENCHMARK_ARCH"' in build
     assert 'cp -r "$REPO/skills/." .skills/' in build
-    assert 'cp -r .wheels tasks/orders-api-python/.wheels' in build
+    assert 'cp -r ".wheels/$BENCHMARK_ARCH" tasks/orders-api-python/.wheels' in build
+    assert '--build-arg "DOCUMENTDB_BENCH_BASE=$BASE_TAG"' in build
+    assert "FROM ${DOCUMENTDB_BENCH_BASE}" in task_dockerfile
 
 
-def test_build_entrypoint_pins_the_x86_64_benchmark_platform():
-    """The vendored wheels and pinned mongosh archive are x86-64.
-
-    Without an explicit platform Docker selects an arm64 base image on Apple
-    Silicon, then fails when the Dockerfile executes the x64 mongosh binary.
-    Both images must use the same amd64 platform so local reproduction matches
-    the MSBench environment.
-    """
+def test_build_and_controls_use_matching_platforms():
+    """Local builds follow the host; controls must run the built image's arch."""
     build = (BENCH / "build.sh").read_text()
     verify = (BENCH / "verify-controls.sh").read_text()
+    vendor = (BENCH / "shared" / "base" / "vendor-wheels.sh").read_text()
+    dockerfile = (BENCH / "shared" / "base" / "Dockerfile").read_text()
 
     assert 'BENCHMARK_PLATFORM="linux/amd64"' in build
+    assert 'BENCHMARK_PLATFORM="linux/arm64"' in build
     assert build.count('--platform "$BENCHMARK_PLATFORM"') == 2
-    assert 'BENCHMARK_PLATFORM="linux/amd64"' in verify
+    assert '--build-arg "TARGETARCH=$BENCHMARK_ARCH"' in build
+    assert 'BENCHMARK_PLATFORM="${BENCHMARK_PLATFORM:-linux/$IMAGE_ARCH}"' in verify
     assert 'docker run --rm --platform "$BENCHMARK_PLATFORM"' in verify
+    assert 'manylinux2014_aarch64' in vendor
+    assert 'manylinux2014_x86_64' in vendor
+    assert '--build-arg "DOCUMENTDB_BASE_IMAGE=$BASE_IMAGE"' in build
+    assert "Base image architecture is $BUILT_ARCH" in build
+    assert "Task image architecture is $BUILT_ARCH" in build
+    assert 'MONGOSH_SHA256_ARM64=' in dockerfile
+    assert 'MONGOSH_SHA256_AMD64=' in dockerfile
 
 
 # ---------------------------------------------------------------------------

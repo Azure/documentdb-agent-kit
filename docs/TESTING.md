@@ -35,12 +35,18 @@ docker run -d --name documentdb-local \
   -e USERNAME=docdbadmin -e PASSWORD='<choose-a-password>' \
   ghcr.io/microsoft/documentdb/documentdb-local:latest
 
-# 2. Install mongosh INTO the container — the image does not ship it
+# 2. Install mongosh INTO the container — the image does not ship it.
+#    Match the container's architecture (not necessarily the host's).
 MV=2.3.8
-curl -sSL "https://downloads.mongodb.com/compass/mongosh-${MV}-linux-x64.tgz" -o /tmp/mongosh.tgz
+case "$(docker image inspect "$(docker inspect documentdb-local --format '{{.Image}}')" --format '{{.Architecture}}')" in
+  amd64) MONGOSH_ARCH=x64 ;;
+  arm64) MONGOSH_ARCH=arm64 ;;
+  *) echo "Unsupported container architecture" >&2; exit 1 ;;
+esac
+curl -fsSL "https://downloads.mongodb.com/compass/mongosh-${MV}-linux-${MONGOSH_ARCH}.tgz" -o /tmp/mongosh.tgz
 tar xzf /tmp/mongosh.tgz -C /tmp
-docker cp "/tmp/mongosh-${MV}-linux-x64/bin/mongosh" documentdb-local:/usr/local/bin/mongosh
-docker cp "/tmp/mongosh-${MV}-linux-x64/bin/mongosh_crypt_v1.so" documentdb-local:/usr/local/lib/
+docker cp "/tmp/mongosh-${MV}-linux-${MONGOSH_ARCH}/bin/mongosh" documentdb-local:/usr/local/bin/mongosh
+docker cp "/tmp/mongosh-${MV}-linux-${MONGOSH_ARCH}/bin/mongosh_crypt_v1.so" documentdb-local:/usr/local/lib/
 docker exec documentdb-local mongosh --version
 
 # 3. Export the password the container was created with
@@ -257,9 +263,11 @@ bash build.sh
 bash verify-controls.sh
 ```
 
-The build and verification entrypoints pin containers to `linux/amd64`. The
-benchmark's vendored wheels and checksum-verified `mongosh` archive are x86-64,
-so Docker Desktop uses amd64 emulation on Apple Silicon.
+The local build selects the Docker host's architecture. On ARM64 it vendors
+ARM64 wheels and a checksum-verified ARM64 `mongosh`, and the controls run that
+image natively. Set `BENCHMARK_PLATFORM=linux/amd64` on both commands to
+reproduce the published x86-64 MSBench image with emulation; this requires
+binfmt/QEMU on Linux ARM64. The MSBench registry and dataset remain x86-64.
 
 Both controls matter. A grader that cannot be satisfied makes every score
 meaningless; a grader that never fails is worthless.

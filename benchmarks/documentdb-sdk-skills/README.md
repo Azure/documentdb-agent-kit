@@ -215,9 +215,13 @@ bash build.sh
 bash verify-controls.sh
 ```
 
-The build and verification entrypoints pin containers to `linux/amd64` because
-the benchmark's vendored Python wheels and checksum-verified `mongosh` archive
-are x86-64. Docker Desktop uses amd64 emulation automatically on Apple Silicon.
+The local build selects the Docker host's architecture (`linux/amd64` or
+`linux/arm64`) and vendors matching Python wheels and a checksum-verified
+`mongosh` archive. Controls use the built image's architecture. To reproduce
+the published MSBench x86-64 image on an ARM64 machine, set
+`BENCHMARK_PLATFORM=linux/amd64` for **both** commands; this requires x86-64
+emulation. The registry and dataset still target x86-64, so local ARM64 controls
+validate the grader but are not an MSBench treatment/control effectiveness run.
 
 `--backend local` lets MSBench run harbor-native benchmarks entirely on your
 machine, so the whole benchmark can be iterated **without** pushing to the
