@@ -1,0 +1,3 @@
+# Per-run agent output: trajectories, logs, session dumps. Only the curated
+# artifacts in results/ are committed.
+results/raw/

@@ -1,0 +1,17 @@
+{
+  "name": "documentdb-ecommerce-advanced-data",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Deterministic ecommerce fixtures for transactions, change streams, and advanced MQL compatibility tests",
+  "type": "module",
+  "scripts": {
+    "generate": "node scripts/generate.mjs",
+    "validate": "node scripts/validate.mjs",
+    "check-determinism": "bash scripts/check-determinism.sh",
+    "load": "node scripts/load.mjs",
+    "test": "npm run validate && npm run check-determinism"
+  },
+  "dependencies": {
+    "mongodb": "6.20.0"
+  }
+}

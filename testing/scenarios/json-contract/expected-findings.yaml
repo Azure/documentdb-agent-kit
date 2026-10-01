@@ -10,6 +10,9 @@ database: test_json_contract
 shape:
   document-bloat-advisor.sh:
     type: list
+  toast-split-advisor.sh:
+    type: object
+    keys: [db, flagged, findings, clean, analysis_only]
   index-redundancy-finder.sh:
     type: list
   db-config-advisor.sh:

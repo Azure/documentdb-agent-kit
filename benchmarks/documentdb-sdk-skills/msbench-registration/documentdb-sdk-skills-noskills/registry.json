@@ -1,0 +1,22 @@
+{
+  "id": "documentdb-sdk-skills-noskills",
+  "name": "DocumentDB SDK Skills (No Skills)",
+  "owner": "Azure DocumentDB",
+  "creator": "Azure DocumentDB Agent Kit",
+  "contactEmail": "msbench@microsoft.com",
+  "description": "Control arm for documentdb-sdk-skills: the identical task, environment and verifier, with NO DocumentDB skills installed. Establishes the baseline an unassisted agent achieves so the treatment arm's score can be interpreted.",
+  "source": "1P",
+  "format": "Harbor",
+  "quality": "Trusted",
+  "category": "Feature Addition",
+  "license": "MIT",
+  "languages": [
+    "Python"
+  ],
+  "platforms": [
+    "Linux"
+  ],
+  "site": "https://github.com/Azure/documentdb-agent-kit",
+  "notes": "Control arm. Identical to documentdb-sdk-skills except that no skills are installed into the agent's skills directory. Mirrors the platform's existing skillsbench / skillsbenchnoskills convention.",
+  "externalInstances": 1
+}

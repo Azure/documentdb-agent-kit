@@ -1,0 +1,177 @@
+name: MSBench Skill-Efficacy Benchmark
+
+# The MSBench Skill-Efficacy Benchmark is the publication layer: a hermetic,
+# externally-citable pass@k for the DocumentDB agent kit, run on Microsoft's
+# MSBench platform.
+#
+# Split by what each job needs:
+#
+#   validate  — no Docker, no MSBench, no network. Runs on every PR.
+#   build     — Docker only. Builds the images and proves the ORACLE scores 1
+#               and an EMPTY submission scores 0. Manual/scheduled.
+#   publish   — needs internal MSBench access. Manual only.
+#
+# The paid/gated jobs never trigger on push or pull_request.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "benchmarks/**"
+      - "testing/scenarios/benchmark-*/**"
+  push:
+    branches: [main]
+    paths:
+      - "benchmarks/**"
+  workflow_dispatch:
+    inputs:
+      run_oracle:
+        description: "Build the images and run the oracle end-to-end"
+        required: false
+        default: true
+        type: boolean
+      pass_at_k:
+        description: "Attempts per instance when submitting to MSBench"
+        required: false
+        default: "5"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  # -------------------------------------------------------------------------
+  validate:
+    name: Benchmark structure (free)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test deps
+        run: pip install -r testing/requirements.txt
+
+      - name: Validate registration, task layout and cost metrics
+        working-directory: testing
+        # No container, no credentials, no network — these override the
+        # container fixture with a no-op.
+        run: python -m pytest -ra scenarios/benchmark-config scenarios/benchmark-metrics
+
+      - name: Lint shell entrypoints
+        run: |
+          if ! command -v shellcheck >/dev/null 2>&1; then
+            case "$RUNNER_OS" in
+              Linux) sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck ;;
+              macOS) brew install shellcheck ;;
+              *) echo "Unsupported lint runner: $RUNNER_OS" >&2; exit 1 ;;
+            esac
+          fi
+          # Lint EVERY shell script under benchmarks/, not a hand-maintained
+          # list. An explicit list silently stops covering new scripts, which is
+          # how a real bug (an agent prompt that was never passed, SC2034) sat
+          # unlinted in the route-efficiency harness.
+          #
+          # SC1091: sourced files live inside the container image, not the repo.
+          printf 'linting %s script(s)\n' "$(find benchmarks -name '*.sh' -type f | wc -l)"
+          find benchmarks -name '*.sh' -type f -exec shellcheck -e SC1091 {} +
+
+  # -------------------------------------------------------------------------
+  oracle:
+    name: Build images + oracle must pass, empty must fail
+    runs-on: ubuntu-latest
+    needs: validate
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_oracle }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Stage inputs and build benchmark images
+        working-directory: benchmarks/documentdb-sdk-skills
+        # build.sh stages the ignored .skills/ and .wheels/ build inputs before
+        # invoking Docker. Calling either Dockerfile directly fails in a clean
+        # checkout because those generated directories do not exist.
+        run: bash build.sh
+
+      - name: Oracle must score 1
+        # The positive control. If this fails, the grader is impossible to
+        # satisfy and every measured score is meaningless.
+        working-directory: benchmarks/documentdb-sdk-skills
+        # The image intentionally does not bake /solution or /tests. The
+        # control runner mounts them read-only and asserts the reward.
+        run: bash verify-controls.sh --only oracle
+
+      - name: Empty submission must score 0
+        # The negative control. A grader that never fails is worthless, and this
+        # is the cheapest possible proof that it can.
+        working-directory: benchmarks/documentdb-sdk-skills
+        run: bash verify-controls.sh --only empty
+
+  # -------------------------------------------------------------------------
+  publish:
+    name: Submit to MSBench (internal access required)
+    runs-on: ubuntu-latest
+    needs: oracle
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    environment: msbench
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Azure login
+        uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2.3.1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install msbench-cli
+        env:
+          FEED: https://pkgs.dev.azure.com/devdiv/_packaging/MicrosoftSweBench/pypi/simple/
+        run: |
+          pip install keyring artifacts-keyring
+          TOKEN=$(az account get-access-token \
+            --resource 499b84ac-1321-427f-aa17-267ca6975798 \
+            --query accessToken -o tsv)
+          echo "::add-mask::$TOKEN"
+          pip install msbench-cli --index-url="https://user:${TOKEN}@${FEED#https://}"
+          msbench-cli version
+
+      - name: Run both arms
+        # BOTH arms, always. A treatment score without its control is not a
+        # result — it cannot be interpreted, let alone published.
+        run: |
+          K="${{ inputs.pass_at_k }}"
+          for arm in documentdb-sdk-skills documentdb-sdk-skills-noskills; do
+            echo "::group::$arm"
+            msbench-cli run \
+              --benchmark "$arm" \
+              --dataset "benchmarks/documentdb-sdk-skills/msbench-registration/$arm/dataset.jsonl" \
+              --pass_at_k "$K" \
+              --runner benchmarks/documentdb-sdk-skills/shared/ces/runner.sh
+            echo "::endgroup::"
+          done
+
+      - name: Summarise
+        if: always()
+        run: |
+          {
+            echo "## MSBench Skill-Efficacy Benchmark"
+            echo
+            echo "Report the **delta** between \`documentdb-sdk-skills\` (kit"
+            echo "installed, never mentioned) and \`documentdb-sdk-skills-noskills\`"
+            echo "(control). An absolute pass@k on either arm alone is not a result."
+            echo
+            echo "Per-instance token cost and observed model provenance are in"
+            echo "\`custom_metrics.json\`; export them with"
+            echo '`msbench-cli report --run_id <id> --output report.json`.'
+            echo "The report generator refuses comparisons with missing or different"
+            echo "model identifiers between treatment and control."
+          } >> "$GITHUB_STEP_SUMMARY"

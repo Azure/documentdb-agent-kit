@@ -1,0 +1,22 @@
+{
+  "id": "documentdb-sdk-skills",
+  "name": "DocumentDB SDK Skills",
+  "owner": "Azure DocumentDB",
+  "creator": "Azure DocumentDB Agent Kit",
+  "contactEmail": "msbench@microsoft.com",
+  "description": "Measures whether a coding agent applies Azure DocumentDB best practices when building a service backed by DocumentDB. The agent has the documentdb-agent-kit skills installed and discoverable, and the task statement is deliberately silent about indexing, data modelling and connection management. Graded behaviourally: the verifier drives the agent's HTTP API, independently reads the database, and inspects the PostgreSQL engine underneath for query plans and index usage.",
+  "source": "1P",
+  "format": "Harbor",
+  "quality": "Trusted",
+  "category": "Feature Addition",
+  "license": "MIT",
+  "languages": [
+    "Python"
+  ],
+  "platforms": [
+    "Linux"
+  ],
+  "site": "https://github.com/Azure/documentdb-agent-kit",
+  "notes": "Treatment arm: the DocumentDB agent kit skills are installed and discoverable, but never mentioned in the prompt. Compare against documentdb-sdk-skills-noskills, which is the identical task with no skills installed. Only the DELTA between the two is meaningful; an absolute pass rate on either arm alone is not interpretable.",
+  "externalInstances": 1
+}

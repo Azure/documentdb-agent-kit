@@ -1,0 +1,123 @@
+# eval.yaml — DocumentDB skill-efficacy eval (Cross-Model Skill Evaluations)
+#
+# Phase 1 scope: does the RIGHT skill activate for a given phrasing, and — just
+# as important — does NO DocumentDB skill activate for an unrelated question?
+#
+# ⚠️ SCOPE LIMIT — READ THIS BEFORE QUOTING ANY RESULT FROM THIS EVAL.
+# Every grader here is `skill-invocation`: it checks that a skill FIRED, never
+# that the guidance it produced was any GOOD. Nothing in this file, and nothing
+# in the MSBench benchmark (which grades rubric conformance with deterministic
+# checks), assesses the QUALITY of the advice.
+#
+# A skill can trigger perfectly and still give poor advice, and this eval would
+# report a pass. That question is answered by its sibling,
+# ../documentdb-quality/quality-eval.yaml, which scores the guidance itself with
+# a blinded cross-model judge panel. Claims sourced from THIS file must be
+# limited to routing behaviour.
+#
+# Why start here (see the grading ladder in the plan):
+#   * it is the cheapest useful signal (runs on the free `mock` executor),
+#   * it is graded OBJECTIVELY (`skill-invocation` = binary), no LLM judge,
+#   * and it regression-tests skill routing, which is otherwise only ever
+#     checked by hand.
+#
+# Run:
+#   npm run lint          # static validation, no agent, no cost
+#   npm run eval:mock     # execute against the mock executor (free)
+#   npm run eval          # execute against a real model (costs AI credits)
+
+name: documentdb-skills
+description: >-
+  Skill-activation contract for the Azure DocumentDB agent kit: the correct
+  skill must activate for DocumentDB questions, and no DocumentDB skill may
+  activate for questions about other databases or unrelated topics.
+type: capability
+
+defaults:
+  timeout: 3m
+
+environment:
+  # Skills are made discoverable to the agent exactly as a user would have them
+  # installed — the agent is NEVER told to use them. This measures the skill's
+  # *organic* effect rather than a hinted best case.
+  skills:
+    - ../../skills/query-optimizer
+    - ../../skills/indexing
+    - ../../skills/connection
+    - ../../skills/data-modeling
+    - ../../skills/vector-search
+
+stimuli:
+  # ---------------------------------------------------------------------
+  # Positive triggers — the right skill must activate
+  # ---------------------------------------------------------------------
+  - name: slow-query-should-trigger-optimizer
+    tags: { kind: trigger, area: query-perf }
+    prompt: |
+      This query against my Azure DocumentDB collection has become slow as the
+      collection grew. Why is it slow and how do I fix it?
+
+          db.orders.find({ status: "shipped", customer_id: "CUST_004087" })
+                   .sort({ created_at: -1 })
+    graders:
+      - type: skill-invocation
+        config:
+          required: [documentdb-query-optimizer]
+
+  - name: index-type-choice-should-trigger-indexing
+    tags: { kind: trigger, area: indexing }
+    prompt: |
+      I have an Azure DocumentDB collection where each document has an array of
+      tags, and I also need to expire documents after 30 days. Which index types
+      should I create, and why?
+    graders:
+      - type: skill-invocation
+        config:
+          required: [documentdb-indexing]
+
+  - name: pool-exhaustion-should-trigger-connection
+    tags: { kind: trigger, area: connection }
+    prompt: |
+      My Node.js service talking to Azure DocumentDB is throwing connection pool
+      exhaustion errors and timeouts under load. How should I configure the
+      MongoClient?
+    graders:
+      - type: skill-invocation
+        config:
+          required: [documentdb-connection]
+
+  # ---------------------------------------------------------------------
+  # Anti-triggers — NO DocumentDB skill may activate
+  # (this is the half that usually goes untested)
+  # ---------------------------------------------------------------------
+  - name: postgres-question-should-not-trigger
+    tags: { kind: anti-trigger }
+    prompt: "How do I create a partial index in PostgreSQL for a users table?"
+    graders:
+      - type: skill-invocation
+        config:
+          disallowed:
+            - documentdb-query-optimizer
+            - documentdb-indexing
+            - documentdb-connection
+            - documentdb-data-modeling
+            - documentdb-vector-search
+
+  - name: unrelated-question-should-not-trigger
+    tags: { kind: anti-trigger }
+    prompt: "How do I center a div horizontally and vertically with CSS grid?"
+    graders:
+      - type: skill-invocation
+        config:
+          disallowed:
+            - documentdb-query-optimizer
+            - documentdb-indexing
+            - documentdb-connection
+            - documentdb-data-modeling
+            - documentdb-vector-search
+
+scoring:
+  weights:
+    skill-invocation: 1.0
+  # Skill activation is binary and objective: every stimulus must pass.
+  threshold: 1.0

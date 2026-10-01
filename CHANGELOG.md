@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-09-15 — Portable diagnostic launchers for Windows
+
+Added native Python entry points and PowerShell wrappers for all six read-only
+diagnostics. Windows users now need only Python 3.10+ and Docker Desktop; Git
+Bash and WSL are not required. The portable launcher copies the selected Bash
+diagnostic into the Linux DocumentDB container and runs the established logic
+there through a direct-command transport, preserving the existing flags and
+JSON contracts.
+
+The Diagnostic Regression Suite now invokes the portable Python entry points
+on Linux as well, includes Bash-versus-portable JSON-shape parity checks,
+covers the TOAST split advisor's JSON shape, and runs infrastructure-free
+launcher contracts on `windows-latest`.
+
 ## 2026-05-27 — Mark project as Public Preview
 
 Add a Public Preview status badge to `README.md` and a top-of-document

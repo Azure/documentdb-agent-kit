@@ -1,0 +1,64 @@
+[
+  {
+    "sequence": 1,
+    "operation": "insert",
+    "collection": "stream_orders",
+    "document": {
+      "order_id": "STREAM_NEW_001",
+      "customer_id": "CUST_0003",
+      "status": "pending",
+      "total_amount": 55,
+      "version": 1,
+      "updated_at": {
+        "$date": "2025-03-31T22:00:00.000Z"
+      }
+    },
+    "expected_operation_type": "insert"
+  },
+  {
+    "sequence": 2,
+    "operation": "update",
+    "collection": "stream_orders",
+    "filter": {
+      "order_id": "STREAM_BASE_001"
+    },
+    "update": {
+      "$set": {
+        "status": "shipped",
+        "version": 2,
+        "updated_at": {
+          "$date": "2025-03-31T23:00:00.000Z"
+        }
+      }
+    },
+    "expected_operation_type": "update"
+  },
+  {
+    "sequence": 3,
+    "operation": "replace",
+    "collection": "stream_orders",
+    "filter": {
+      "order_id": "STREAM_BASE_002"
+    },
+    "replacement": {
+      "order_id": "STREAM_BASE_002",
+      "customer_id": "CUST_0002",
+      "status": "delivered",
+      "total_amount": 40,
+      "version": 2,
+      "updated_at": {
+        "$date": "2025-03-31T23:00:00.000Z"
+      }
+    },
+    "expected_operation_type": "replace"
+  },
+  {
+    "sequence": 4,
+    "operation": "delete",
+    "collection": "stream_orders",
+    "filter": {
+      "order_id": "STREAM_NEW_001"
+    },
+    "expected_operation_type": "delete"
+  }
+]

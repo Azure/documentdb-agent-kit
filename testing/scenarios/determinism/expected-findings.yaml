@@ -1,0 +1,136 @@
+# expected-findings.yaml — determinism (Diagnostic Regression Suite)
+#
+# Contract: every diagnostic script, given the SAME database state, must return
+# the SAME `--json` result on repeated runs.
+#
+# Determinism is asserted on `--json` only. The human-readable output embeds a
+# wall-clock banner (`Timestamp: ...`) and measured latencies, so it is not — and
+# should not be — byte-stable.
+#
+# Scope of the guarantee: a FIXED database state. Some findings legitimately
+# depend on live PostgreSQL counters (e.g. `idx_scan`, which resets when the
+# container restarts), so this scenario seeds its own database and does not
+# exercise it between the repeated runs.
+
+database: test_determinism
+
+# How many times each script is run and compared. All runs must agree.
+runs: 3
+
+# Scripts under test. `must_find` = the canonicalised output must be non-empty
+# (i.e. the script actually reported something). Without this guard a script that
+# finds NOTHING would trivially "pass" determinism — the false-determinism trap.
+scripts:
+  - name: index-redundancy-finder.sh
+    must_find: true
+  - name: data-integrity-check.sh
+    must_find: true
+  - name: document-bloat-advisor.sh
+    must_find: true
+  - name: perf-advisor.sh
+    must_find: true
+  - name: db-config-advisor.sh
+    must_find: true
+
+# ---------------------------------------------------------------------------
+# Volatile fields — MEASURED, not guessed.
+#
+# These keys hold live measurements that legitimately change between two runs
+# against an unchanged database. They are removed before comparison. Everything
+# else must be byte-stable; unexplained drift fails the test loudly.
+#
+# Observed drift that motivated each entry (perf-advisor.sh --json, two
+# consecutive runs on an unchanged DB):
+#   slow_queries[].ms          57 -> 61,  473 -> 452,  429 -> 309,  174 -> 168
+#   pg.cache_top[].idx_hit_pct 95.65 -> 96.43,  98.55 -> 98.70
+#   pg.scan_mix[].seq_scan     85 -> 93   (and idx_scan / idx_scan_pct with it)
+#
+# Keep this list SHORT and reviewed. Growing it silently is how a real
+# nondeterminism bug gets hidden.
+# ---------------------------------------------------------------------------
+volatile_fields:
+  # wall-clock / duration
+  - timestamp
+  - generated_at
+  - duration_ms
+  - elapsed_ms
+  - ms
+  # `index_health[].unused` is derived from `$indexStats` accesses.ops — a LIVE
+  # counter — and perf-advisor's OWN probe queries touch the very indexes it is
+  # reporting on. Worse, the counter is updated ASYNCHRONOUSLY, so whether run N
+  # observes the effect of run N-1's probes is a race.
+  #
+  # Symptom that exposed it: the suite passed in isolation and in most full
+  # runs, but failed roughly 2 runs in 7 under load. A test that fails
+  # intermittently is worse than no test — it trains people to re-run until
+  # green — so the measurement is separated from the finding here.
+  #
+  # What is still asserted: which indexes EXIST and which are REDUNDANT
+  # (`index_health[].redundant`) — those are structural facts. Only "has this
+  # index been read recently", which is a live measurement, is dropped.
+  - unused
+  # PostgreSQL live counters and ratios
+  - seq_scan
+  - idx_scan
+  - idx_scan_pct
+  - heap_hit_pct
+  - idx_hit_pct
+  - heap_disk_reads
+  - numBlocksFromCache
+  - numBlocksFromDisk
+  # `perf-advisor.sh` reports query latency two ways:
+  #   * `query_timings` — EVERY probe it ran. Membership and `results` counts are
+  #     deterministic; only the measured `ms` moves. This is what the determinism
+  #     contract asserts.
+  #   * `slow_queries` — the subset over the latency threshold. Whether a query
+  #     crosses 50 ms depends on cache warmth and machine load, so its MEMBERSHIP
+  #     legitimately changes between runs. It is a measurement, not a finding.
+  #
+  # Originally `slow_queries` was the only timing output, which made the whole
+  # timing section unassertable. Splitting it (see scripts/perf-advisor.sh) means
+  # the deterministic part is now checked rather than discarded.
+  - slow_queries
+
+# Lists whose ORDER is derived from a volatile metric (they are sorted by a live
+# counter, so two runs can legitimately order them differently). Such lists are
+# order-normalised before comparison; their *contents* still must match.
+#
+# Observed: pg.scan_mix reordered between runs (reviews/inventory swapped) purely
+# because their seq_scan counters crossed over.
+order_insensitive_lists:
+  - cache_top
+  - scan_mix
+
+# ---------------------------------------------------------------------------
+# Sampled values — NOW EMPTY, because the sampling was made deterministic.
+#
+# History (kept deliberately: it is the evidence that this suite works).
+# This scenario found two real nondeterminism bugs on its very first run:
+#
+#   1. `data-integrity-check.sh` used `$sample` for field-type consistency, so
+#      two runs on an UNCHANGED database disagreed on the counts:
+#          invoices.amount  {"number": 87, "string": 13}
+#          invoices.amount  {"number": 85, "string": 15}
+#
+#   2. `document-bloat-advisor.sh` used `$sample` for `dominant_fields`, so the
+#      average field sizes wobbled:
+#          "body:4002B,notes:2002B,title:13B"
+#          "body:4002B,notes:2002B,title:12B"
+#
+# Both were initially NORMALISED AWAY here (counts and byte sizes blanked) and
+# recorded as follow-ups. They have since been FIXED at the source: both scripts
+# now use a deterministic sampler — half the documents from each end of `_id`
+# order — instead of `$sample`. Head+tail rather than head-only is deliberate:
+# mixed types usually come from schema drift over time, so the oldest and newest
+# documents are exactly where the disagreement lives.
+#
+# Verified after the fix: 3 consecutive runs are byte-identical, with the
+# findings still detected (invoices.amount {"number": 86, "string": 14};
+# dominant_fields "body:4002B,notes:2002B,title:12B").
+#
+# These lists are kept — empty — so that re-introducing a normalisation is a
+# visible, reviewable change rather than a silent one.
+# ---------------------------------------------------------------------------
+sampled_count_maps: []
+
+sampled_size_strings: []

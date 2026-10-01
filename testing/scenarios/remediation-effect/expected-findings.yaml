@@ -1,0 +1,67 @@
+# expected-findings.yaml — remediation effect (before/after grading)
+#
+# This scenario implements the STRONGEST rung of the grading ladder: instead of
+# asking a model to judge whether advice is good, it APPLIES the advice and
+# measures whether the database got better.
+#
+# The chain being closed:
+#     tool detects a defect  ->  advice is applied  ->  the defect is measurably
+#     gone  ->  the tool confirms it  ->  nothing else got worse
+#
+# Every link is asserted. A break anywhere fails the suite.
+
+database: test_remediation_effect
+collection: orders
+documents: 20000
+
+# ---------------------------------------------------------------------------
+# The metric: SCAN AMPLIFICATION = totalDocsExamined / nReturned
+#
+# "documents examined dropped" is the obvious metric and it is the wrong one.
+# Measured on this container, DocumentDB's planner picks an index scan even for
+# very unselective predicates, so raw `examined` is dominated by how many rows
+# the query legitimately matches, not by whether the index helped:
+#
+#     amount > 490  (selective)    IXSCAN  examined=760    returned=760
+#     amount > 10   (unselective)  IXSCAN  examined=19960  returned=19960
+#
+# Both are healthy — they read only rows they return. Scan amplification
+# captures exactly that, independent of selectivity: how many documents were
+# read for each document actually returned.
+#
+#     before (no index):  examined=20000, returned=10  ->  2000.0x
+#     after  (index):     examined=10,    returned=10  ->     1.0x
+#
+# This is also precisely the ratio the query-performance-tuning skill teaches
+# users to read out of explain(), so the test grades the same thing the docs do.
+# ---------------------------------------------------------------------------
+before:
+  # The defect must be real, or "improvement" is meaningless.
+  min_scan_amplification: 100.0
+  required_stage: COLLSCAN
+
+after:
+  # A healthy plan reads roughly what it returns. 2.0 leaves headroom for
+  # index-vs-heap bookkeeping without admitting a genuinely wasteful scan.
+  max_scan_amplification: 2.0
+  required_stage: IXSCAN
+  # And the improvement must be large, not a rounding artifact.
+  min_improvement_factor: 50.0
+
+# ---------------------------------------------------------------------------
+# Anti-gaming guards.
+#
+# An improvement metric on its own is trivially gameable: index every field and
+# every query looks fast. These guards make "just add indexes" cost something,
+# which is what the indexing skill actually teaches.
+# ---------------------------------------------------------------------------
+guards:
+  # The remediation must not introduce indexes the kit's own redundancy finder
+  # would flag. Advice that fixes one problem by creating another is not advice.
+  no_new_redundancy: true
+  # The tool that reported the defect must stop reporting it afterwards.
+  # Without this, a "fix" that satisfies the metric but not the tool would pass.
+  tool_confirms_fix: true
+  # Data must be unchanged: a "faster" query that returns different results is
+  # not a fix. Same documents in, same documents out.
+  results_unchanged: true

@@ -15,7 +15,6 @@ and `python3` on the host — no MCP server, no cloud, no API keys.
 | Knowledge-base router | [`knowledge-base/`](../knowledge-base/README.md) | Deterministic NL question → exact script (no LLM at routing time). |
 | Demo datasets | [`scenarios/ecommerce/`](../scenarios/ecommerce/), [`scenarios/contoso/`](../scenarios/contoso/README.md) | Seeders that plant the problems the tools find. |
 | Regression tests | [`testing/`](../testing/README.md) | Fixture-first contracts that guard the scripts. |
-| Token study | [`token-tests/`](../token-tests/README.md) | Measured token savings of scripts vs text-skill workflows. |
 
 ---
 
@@ -29,11 +28,11 @@ password; the scripts read it from `DB_USER` (default `docdbadmin`) and
 docker run -dt --name documentdb-local \
   -p 10260:10260 \
   -e USERNAME=docdbadmin \
-  -e PASSWORD=Test1234 \
+  -e PASSWORD=[YOUR_PASSWORD] \
   ghcr.io/microsoft/documentdb/documentdb-local:latest
 
 # the scripts require a password — export it once (or pass --password each time)
-export DB_PASSWORD=Test1234
+export DB_PASSWORD=[YOUR_PASSWORD]
 
 # preflight: confirm the engine answers (should print "1")
 docker exec documentdb-local psql -h localhost -p 9712 -U documentdb -d postgres -tAc "SELECT 1"
@@ -69,6 +68,25 @@ bash scripts/perf-advisor.sh             --db ecommerce
 # Orphaned foreign keys + mixed field types (hard structural integrity)
 bash scripts/data-integrity-check.sh     --db ecommerce
 ```
+
+### Windows
+
+Each diagnostic has a Python entry point and a PowerShell convenience wrapper:
+
+```powershell
+python scripts\document-bloat-advisor.py  --db contoso
+python scripts\toast-split-advisor.py     --db contoso
+.\scripts\index-redundancy-finder.ps1     --db ecommerce
+.\scripts\db-config-advisor.ps1           --db contoso
+.\scripts\perf-advisor.ps1                --db ecommerce
+.\scripts\data-integrity-check.ps1        --db ecommerce
+```
+
+Prerequisites are Python 3.10+ and Docker Desktop with the target Linux
+DocumentDB container running. Git Bash and WSL are not required. The portable
+launcher copies the selected read-only script into the container and runs it
+there, preserving the same CLI flags and JSON output contract as the Bash entry
+point.
 
 Add `--json` to any of them for a compact machine-readable result (what the router
 and agents consume):
@@ -107,15 +125,6 @@ bash scripts/document-bloat-advisor.sh --db contoso     # opportunities now clea
 ```bash
 bash testing/run.sh          # fixture-first contracts; auto-creates a venv
 ```
-
-## 6. Reproduce the token study (optional)
-
-```bash
-cd token-tests
-bash token-ab-measure.sh | python3 summarize.py     # see RESULTS.md for the table
-```
-
----
 
 ## Connection defaults
 

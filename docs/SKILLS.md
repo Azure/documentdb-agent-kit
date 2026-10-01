@@ -63,8 +63,7 @@ Companion to the toolbox: the `data-modeling` skill's
 [`model-large-field-split`](../skills/data-modeling/model-large-field-split.md)
 rule explains the TOAST anti-pattern, and its analyzer
 [`scripts/toast-split-advisor.sh`](../scripts/toast-split-advisor.sh) measures it.
-The scripts are guarded by the regression suite in [`../testing/`](../testing/README.md),
-and their token efficiency is measured in [`../token-tests/RESULTS.md`](../token-tests/RESULTS.md).
+The scripts are guarded by the regression suite in [`../testing/`](../testing/README.md).
 
 ## Use when
 

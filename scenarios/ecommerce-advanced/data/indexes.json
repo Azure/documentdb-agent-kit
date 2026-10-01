@@ -1,0 +1,138 @@
+{
+  "customers": [
+    {
+      "name": "customer_id_1",
+      "key": {
+        "customer_id": 1
+      },
+      "unique": true
+    },
+    {
+      "name": "region_1_tier_1",
+      "key": {
+        "region": 1,
+        "tier": 1
+      }
+    }
+  ],
+  "products": [
+    {
+      "name": "product_id_1",
+      "key": {
+        "product_id": 1
+      },
+      "unique": true
+    },
+    {
+      "name": "category_1_price_1",
+      "key": {
+        "category": 1,
+        "price": 1
+      }
+    },
+    {
+      "name": "tags_1",
+      "key": {
+        "tags": 1
+      }
+    }
+  ],
+  "inventory": [
+    {
+      "name": "product_id_1_warehouse_id_1",
+      "key": {
+        "product_id": 1,
+        "warehouse_id": 1
+      },
+      "unique": true
+    }
+  ],
+  "orders": [
+    {
+      "name": "order_id_1",
+      "key": {
+        "order_id": 1
+      },
+      "unique": true
+    },
+    {
+      "name": "customer_id_1_placed_at_-1",
+      "key": {
+        "customer_id": 1,
+        "placed_at": -1
+      }
+    },
+    {
+      "name": "status_1_placed_at_-1",
+      "key": {
+        "status": 1,
+        "placed_at": -1
+      }
+    }
+  ],
+  "order_items": [
+    {
+      "name": "order_id_1_line_number_1",
+      "key": {
+        "order_id": 1,
+        "line_number": 1
+      },
+      "unique": true
+    },
+    {
+      "name": "product_id_1",
+      "key": {
+        "product_id": 1
+      }
+    }
+  ],
+  "payments": [
+    {
+      "name": "payment_id_1",
+      "key": {
+        "payment_id": 1
+      },
+      "unique": true
+    },
+    {
+      "name": "order_id_1",
+      "key": {
+        "order_id": 1
+      },
+      "unique": true
+    }
+  ],
+  "returns": [
+    {
+      "name": "return_id_1",
+      "key": {
+        "return_id": 1
+      },
+      "unique": true
+    },
+    {
+      "name": "order_id_1",
+      "key": {
+        "order_id": 1
+      }
+    }
+  ],
+  "daily_sales": [
+    {
+      "name": "sales_date_1",
+      "key": {
+        "sales_date": 1
+      },
+      "unique": true
+    }
+  ],
+  "stream_orders": [
+    {
+      "name": "order_id_1",
+      "key": {
+        "order_id": 1
+      },
+      "unique": true
+    }
+  ]
+}

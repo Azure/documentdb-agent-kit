@@ -22,6 +22,9 @@
 #           an agent/router can consume the verdict without the full human report.
 set -uo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/diagnostic-runtime.sh"
+
 CONTAINER_NAME="${CONTAINER_NAME:-documentdb-local}"
 PORT="${PORT:-10260}"
 USER="${DB_USER:-docdbadmin}"
@@ -56,7 +59,7 @@ done
 [[ -z "$PASSWORD" ]] && { echo "Error: no password. Set DB_PASSWORD or pass --password (local demo: export DB_PASSWORD=Test1234)." >&2; exit 1; }
 
 run_mongosh() {
-    docker exec -u documentdb "$CONTAINER_NAME" mongosh \
+    docdb_exec_as documentdb mongosh \
         "localhost:${PORT}/${DB}" -u "$USER" -p "$PASSWORD" \
         --authenticationMechanism SCRAM-SHA-256 --tls --tlsAllowInvalidCertificates \
         --quiet --eval "$1" 2>/dev/null
@@ -67,7 +70,35 @@ hecho() { [[ "$JSON" == "1" ]] || echo "$@"; }
 
 # JS prelude: JSON_MODE toggles whether the shared check bodies print the human
 # report (out) or only their machine-readable fragment.
-JS_MODE="var JSON_MODE=$([[ "$JSON" == "1" ]] && echo true || echo false); function out(s){ if(!JSON_MODE) print(s); }"
+#
+# It also defines detSample() — a DETERMINISTIC sampler used instead of
+# `$sample`. `$sample` draws a different random subset on every run, so the
+# reported type counts changed between two runs against an unchanged database
+# (measured: amount {number:87,string:13} then {number:85,string:15}). The
+# finding was stable but the numbers were not, which makes the output
+# unreproducible and impossible to diff in CI.
+#
+# detSample() takes half the documents from each end of _id order. Head+tail
+# rather than head-only is deliberate: mixed types usually arrive from schema
+# drift over time, so the oldest and newest documents are exactly where the
+# disagreement lives. Sampling only the head would systematically miss a type
+# change introduced after the collection was created.
+JS_PRELUDE='
+function detSample(coll, size) {
+    var half = Math.ceil(size / 2);
+    var head = db[coll].find().sort({ _id: 1 }).limit(half).toArray();
+    var tail = db[coll].find().sort({ _id: -1 }).limit(size - half).toArray();
+    var seen = {}, picked = [];
+    head.concat(tail).forEach(function (d) {
+        var k = String(d._id);
+        if (seen[k]) return;
+        seen[k] = 1;
+        picked.push(d);
+    });
+    return picked;
+}
+'
+JS_MODE="var JSON_MODE=$([[ "$JSON" == "1" ]] && echo true || echo false); function out(s){ if(!JSON_MODE) print(s); } $JS_PRELUDE"
 
 # ── Shared check bodies (single source of truth for both modes) ─────────────
 read -r -d '' CHECK1_JS <<'JS'
@@ -80,7 +111,7 @@ var collSet = new Set(colls);
 // Strategy: find fields ending in _id (but not _id itself), and check
 // if there is a matching collection (singular or plural)
 colls.forEach(function(c) {
-    var sample = db[c].aggregate([{$sample:{size:20}}]).toArray();
+    var sample = detSample(c, 20);
     if (sample.length === 0) return;
 
     // Gather all top-level fields that end with "_id" (excluding _id)
@@ -106,8 +137,10 @@ colls.forEach(function(c) {
         }
         if (!targetColl) return;
 
-        // Check if the target collection actually has this field (or _id)
-        var targetSample = db[targetColl].findOne();
+        // Check if the target collection actually has this field (or _id).
+        // First-by-_id rather than findOne(): an arbitrary document could be
+        // missing an optional field and flip the result between runs.
+        var targetSample = db[targetColl].find().sort({_id:1}).limit(1).toArray()[0];
         if (!targetSample) return;
         var targetField = targetSample[fk] !== undefined ? fk : null;
         if (!targetField && fk === targetColl.replace(/s$/, "") + "_id") {
@@ -153,7 +186,7 @@ colls.forEach(function(c) {
     if (count < 5) return;
 
     var sampleSize = Math.min(100, count);
-    var sample = db[c].aggregate([{$sample:{size:sampleSize}}]).toArray();
+    var sample = detSample(c, sampleSize);
     if (sample.length === 0) return;
 
     // Record the scalar BSON type seen for each field across sampled docs

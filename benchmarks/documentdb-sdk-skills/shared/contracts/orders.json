@@ -1,0 +1,49 @@
+{
+  "scenario": "orders",
+  "database_env": "DOCUMENTDB_DATABASE",
+  "database_default": "ordersdb",
+  "health_path": "/health",
+  "roots": [
+    {
+      "name": "order",
+      "collection_env": "DOCUMENTDB_ORDERS_COLLECTION",
+      "collection_default": "orders",
+      "create": { "path": "/orders", "duplicate_status": 409 },
+      "get": { "path": "/orders/{id}" },
+      "list": {
+        "path": "/orders",
+        "filter_param": "customer_id",
+        "filter_field": "customer_id"
+      },
+      "compare_fields": ["customer_id", "status", "amount", "items"],
+      "ordered_array_fields": ["items"],
+      "string_array_fields": ["items"],
+      "string_fields": ["customer_id", "status"],
+      "numeric_fields": ["amount"],
+      "modeling": {
+        "type_discriminator": true,
+        "schema_version": true,
+        "timestamp_field": "created_at"
+      },
+      "indexing": {
+        "require_secondary_index": true,
+        "required_query_fields": ["customer_id"],
+        "esr_compound": {
+          "equality": ["customer_id"],
+          "sort": ["created_at"]
+        }
+      },
+      "engine": {
+        "max_scan_amplification": 5.0,
+        "forbid_full_scan_for": ["customer_id"]
+      },
+      "seed": [
+        { "id": "o-alpha",   "customer_id": "CUST-001", "status": "shipped",   "amount": 120.5, "items": ["widget", "gasket"] },
+        { "id": "o-bravo",   "customer_id": "CUST-001", "status": "pending",   "amount": 42.0,  "items": ["bolt"] },
+        { "id": "o-charlie", "customer_id": "CUST-002", "status": "shipped",   "amount": 999.99, "items": ["frame", "wheel", "chain"] },
+        { "id": "o-delta",   "customer_id": "CUST-003", "status": "cancelled", "amount": 7.25,  "items": [] }
+      ]
+    }
+  ],
+  "children": []
+}

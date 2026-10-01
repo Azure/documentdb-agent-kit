@@ -1,0 +1,63 @@
+# orders.toml — harbor-format-curation config for documentdb-sdk-skills.
+#
+# Build:
+#   harbor-format-curation import orders.toml
+#   harbor-format-curation build --profile local orders.toml
+#   harbor-format-curation update-database --profile local orders.toml
+#
+# The registries below mirror the platform's existing skillsbench benchmark.
+
+[maintainer]
+team = "Azure DocumentDB"
+name = "Azure DocumentDB Agent Kit"
+email = "msbench@microsoft.com"
+
+[import]
+from = "path-local"
+path = "tasks"
+staging-folder = "${TEMP}/harborcuration/documentdb-sdk-skills"
+
+[docker.local]
+registry = "localhost:5000"
+provider = "Docker localhost registry"
+benchmark = "documentdb-sdk-skills"
+type = "eval"
+architecture = "x86_64"
+version = "0.0.1"
+
+[docker.staging]
+registry = "msbenchstaging.azurecr.io"
+provider = "Azure container registry"
+benchmark = "documentdb-sdk-skills"
+type = "eval"
+architecture = "x86_64"
+version = "0.0.1"
+
+[docker.prod]
+registry = "codeexecservice.azurecr.io"
+provider = "Azure container registry"
+benchmark = "documentdb-sdk-skills"
+type = "eval"
+architecture = "x86_64"
+version = "0.0.1"
+
+# ============================================================================
+# Task Exclusions — completely skip these tasks during build
+# ============================================================================
+[tasks.exclude]
+# (none yet — a single task ships today)
+
+# ============================================================================
+# Verification Skips — build the task but skip a specific verification phase.
+# Valid phases: "environment", "agent", "oracle".
+#
+# DELIBERATELY EMPTY, and it should stay that way.
+#
+# The platform's own skillsbench config carries several
+# `skip = "oracle", reason = "Non-deterministic: ..."` entries. That is the
+# failure mode this benchmark is built to avoid: under a BINARY reward, a
+# single flaky check corrupts the whole signal, so a check that cannot be made
+# deterministic must be REMOVED rather than skipped. Every check here is
+# required to clear the determinism bar in testing/scenarios/determinism/.
+# ============================================================================
+[tasks.skip-verification]

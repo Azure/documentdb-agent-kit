@@ -1,0 +1,249 @@
+# quality-eval.yaml — Cross-Model Skill Evaluations: is the GUIDANCE any good?
+#
+# WHY THIS FILE EXISTS
+# --------------------
+# Everything else the kit measures is conformance:
+#
+#   Diagnostic Regression Suite (testing/)     do the scripts return a stable answer?
+#   Cross-Model Skill Evaluations (eval.yaml)    does the RIGHT SKILL FIRE for a given phrasing?
+#   MSBench Skill-Efficacy Benchmark (benchmarks/)  does the produced code satisfy 30 fixed checks?
+#
+# None of those can tell you whether the advice was actually GOOD. A skill can
+# trigger perfectly and give poor guidance; code can satisfy every rule in our
+# rubric and still be the wrong answer to the user's question. This eval closes
+# that gap, and it is the ONE place in the kit where an LLM judge is the right
+# instrument — because "was this explanation clear and correct" is genuinely a
+# matter of degree, not a fact about the system.
+#
+# HOW IT IS KEPT HONEST
+# ---------------------
+# A judge is easy to do badly. Five guards, all load-bearing:
+#
+#   1. ANCHORED CRITERIA, not vibes. Five named dimensions with written
+#      descriptions and explicit weights, so "4/5" means something specific and
+#      two runs are scored against the same yardstick.
+#   2. CROSS-MODEL PANEL. Three judges from three vendors. Models favour their
+#      own output (self-preference bias), so no model may be the sole judge of a
+#      run it could have produced.
+#   3. MEDIAN, not mean. One miscalibrated judge cannot drag the verdict; a
+#      mean would let it.
+#   4. BLINDING. The judges are told nothing about arms, skills, or which
+#      condition produced the answer. If a judge knows which answer is
+#      "supposed" to be better, it will find reasons.
+#   5. CORRECTNESS GATES. technical_correctness and documentdb_specificity are
+#      `required`, so a fluent, confident, WRONG answer fails no matter how well
+#      it scores on clarity. Prose quality must never outvote accuracy.
+#
+# READING THE RESULT
+# ------------------
+# This score is NOT reproducible run-to-run, by construction. Always publish it
+# NEXT TO the objective numbers (skill-triggering from eval.yaml, rubric
+# conformance from the MSBench benchmark), never instead of them. If the judge
+# and the objective measures disagree systematically, trust the objective ones
+# and fix the rubric.
+#
+# Run:
+#   npm run lint:quality
+#   npm run eval:quality            # costs AI credits — 3 judges per stimulus
+
+name: documentdb-guidance-quality
+description: >-
+  Quality of the guidance an agent gives for Azure DocumentDB questions, scored
+  by a blinded cross-model panel against an anchored rubric. Complements the
+  skill-triggering eval (does the right skill fire) and the MSBench benchmark
+  (does the produced code conform), neither of which can assess whether the
+  advice itself was good.
+type: capability
+
+defaults:
+  timeout: 5m
+  # Agent output varies run to run and so does a judge's reading of it. One
+  # sample is an anecdote; the median of 3 is a weak but honest signal.
+  runs: 3
+
+environment:
+  # Same organic-discovery protocol as the triggering eval: the skills are
+  # discoverable exactly as a user would have them installed, and no prompt
+  # mentions them. The experiment file swaps this list for [] in the control
+  # arm, which is the only difference between arms.
+  skills:
+    - ../../skills/query-optimizer
+    - ../../skills/query-optimization
+    - ../../skills/indexing
+    - ../../skills/connection
+    - ../../skills/data-modeling
+    - ../../skills/vector-search
+
+# ---------------------------------------------------------------------------
+# The panel, defined once and reused by every stimulus via a YAML anchor.
+# ---------------------------------------------------------------------------
+x-panel: &quality_panel
+  type: panel
+  config:
+    # Three vendors. A model must never be the only judge of output it could
+    # plausibly have produced itself.
+    models:
+      - model: claude-opus-5
+        reasoning_effort: medium
+      - model: gpt-5.6-sol
+        reasoning_effort: medium
+      - model: gemini-3.1-pro-preview
+        reasoning_effort: medium
+
+    # Median: robust to a single miscalibrated or malfunctioning judge.
+    aggregation: median
+    scoring: scale_1_5
+
+    # 0.6 on the normalised [0,1] scale is 4/5 — "good, with minor gaps".
+    # Deliberately not 3/5: a merely adequate answer to a DocumentDB question
+    # is not what having the kit installed is supposed to produce.
+    threshold: 0.6
+    overall_threshold: 0.6
+
+    evidence: [trajectory]
+
+    prompt: |
+      You are grading the quality of technical guidance about Azure DocumentDB
+      (a MongoDB-compatible database built on PostgreSQL).
+
+      BLINDING — read carefully.
+      You are NOT told, and must not try to infer, how this answer was
+      produced, what tooling or documentation the responder had available, or
+      how any other answer scored. Judge only the text in front of you.
+      Speculating about the source is grounds for an unreliable score.
+
+      HOW TO SCORE
+      * Correctness outranks polish. A confident, fluent answer that would
+        mislead a user is a LOW score, however well written.
+      * Reward specificity over generic advice. "Add an index" is weak; naming
+        the fields, the order, and why, is strong.
+      * Penalise plausible-but-wrong details more harshly than omissions. A
+        user can look up what is missing; they cannot easily detect what is
+        subtly incorrect.
+      * Judge what is written, not what you assume was meant.
+      * Do not reward length. A short, correct, complete answer scores higher
+        than a long one padded with caveats.
+
+      DocumentDB is MongoDB-compatible but NOT MongoDB. Advice that is only
+      true of community MongoDB, or that recommends unsupported features, is a
+      correctness failure, not a nitpick.
+
+    criteria:
+      # --- gates: an answer that fails either of these fails overall ---
+      - name: technical_correctness
+        description: >-
+          Is every technical claim accurate for Azure DocumentDB? Index
+          behaviour, query semantics, driver behaviour, limits. Any statement
+          that would mislead a practitioner is a failure here, regardless of
+          how well the rest reads.
+        weight: 3
+        required: true
+
+      - name: documentdb_specificity
+        description: >-
+          Is the guidance specific to Azure DocumentDB rather than generic
+          MongoDB advice that happens to be adjacent? Correctly reflects where
+          DocumentDB differs (its PostgreSQL engine, cosmosSearch vector
+          indexes, createSearchIndexes, cluster tiers, Entra auth).
+          Recommending a MongoDB feature DocumentDB does not support fails
+          this criterion.
+        weight: 2
+        required: true
+
+      # --- quality dimensions: weighted, but not gates ---
+      - name: actionability
+        description: >-
+          Could a competent engineer act on this immediately? Concrete
+          commands, index definitions or configuration, as opposed to
+          describing what they ought to do in the abstract.
+        weight: 2
+        required: false
+
+      - name: diagnostic_reasoning
+        description: >-
+          Does it explain HOW to establish the cause rather than jumping to a
+          fix? For performance questions specifically, does it reach for
+          explain() or measurement before prescribing an index?
+        weight: 2
+        required: false
+
+      - name: completeness
+        description: >-
+          Does it cover the trade-offs a practitioner would hit next — write
+          cost of an index, memory, cardinality, when the advice does NOT
+          apply? Missing caveats that would bite in production lose marks here.
+        weight: 1
+        required: false
+
+stimuli:
+  # -------------------------------------------------------------------------
+  # Each prompt is a real question a user would ask, phrased WITHOUT naming the
+  # solution — otherwise the judge grades instruction-following, not guidance.
+  # -------------------------------------------------------------------------
+  - name: slow-query-guidance-quality
+    tags: { kind: quality, area: query-perf }
+    prompt: |
+      This query against my Azure DocumentDB collection has got slower as the
+      collection grew to a few million documents:
+
+          db.orders.find({ status: "shipped", customer_id: "CUST_004087" })
+                   .sort({ created_at: -1 })
+
+      Why is it slow, and what should I do about it?
+    rubric:
+      - Establishes the cause with explain() or measurement before prescribing a fix
+      - Recommends a compound index and gets the key ORDER right (equality before sort)
+      - Explains why that order matters rather than only asserting it
+      - Mentions the cost of the index (writes, storage) or when it would not help
+    graders:
+      - *quality_panel
+
+  - name: index-choice-guidance-quality
+    tags: { kind: quality, area: indexing }
+    prompt: |
+      I have an Azure DocumentDB collection where each document has an array of
+      tags, and I also need documents to expire 30 days after creation. How
+      should I set up indexing?
+    rubric:
+      - Identifies that an index on an array field is a multikey index, and what that implies
+      - Recommends a TTL index for expiry, with the correct field type requirement
+      - Warns about the pitfalls (e.g. multikey index size, TTL granularity)
+      - Does not recommend a feature Azure DocumentDB does not support
+    graders:
+      - *quality_panel
+
+  - name: connection-pool-guidance-quality
+    tags: { kind: quality, area: connection }
+    prompt: |
+      My Node.js service talking to Azure DocumentDB throws connection-pool
+      exhaustion errors and timeouts under load. What is going wrong and how do
+      I fix it?
+    rubric:
+      - Identifies client-per-request (or pool misuse) as the likely cause
+      - Prescribes a singleton MongoClient reused across requests
+      - Gives concrete pool/timeout settings rather than "tune the pool"
+      - Explains what the settings do, so the reader can adapt them
+    graders:
+      - *quality_panel
+
+  - name: data-modelling-guidance-quality
+    tags: { kind: quality, area: data-modeling }
+    prompt: |
+      I am designing an Azure DocumentDB schema for an e-commerce app. Orders
+      have line items, and customers have addresses. Should I embed these or
+      keep them in separate collections?
+    rubric:
+      - Answers with the trade-off and the criteria for choosing, not a blanket rule
+      - Mentions the 16 MB document limit as a hard constraint on embedding
+      - Considers access patterns and unbounded growth (line items, addresses)
+      - Gives a concrete recommendation for THIS case rather than only theory
+    graders:
+      - *quality_panel
+
+scoring:
+  weights:
+    panel: 1.0
+  # Every stimulus must clear the bar. A mean across stimuli would let a strong
+  # answer on one topic hide a misleading answer on another — and a misleading
+  # answer is precisely what we most need to catch.
+  threshold: 1.0

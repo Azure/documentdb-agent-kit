@@ -29,13 +29,14 @@ All are **read-only** (they never modify data) and **cross-layer** (MongoDB API 
 PostgreSQL engine). Each takes `--db <name>`; add `--json` for a compact
 machine-readable result (what the router consumes).
 
-| Script | Answers | `--json` |
+| Diagnostic | Answers | `--json` |
 |--------|---------|:--:|
-| `document-bloat-advisor.sh` | Which collections have large text TOASTed and detoasted on every scan; which field to split out. | ✅ |
-| `index-redundancy-finder.sh` | Redundant (prefix/duplicate/reverse) or unused indexes safe to drop. | ✅ |
-| `db-config-advisor.sh` | Working set vs cache, TOAST share, cache-hit ratios — evidence-based config review. | ✅ |
-| `perf-advisor.sh` | Overall health: collection-scan audit, query timing, PG I/O / locks / config. | ✅ |
-| `data-integrity-check.sh` | Orphaned foreign-key references and mixed-type fields (hard structural integrity). | ✅ |
+| `document-bloat-advisor` | Which collections have large text TOASTed and detoasted on every scan; which field to split out. | ✅ |
+| `toast-split-advisor` | Which large fields can move to a side collection and the projected hot-document size. | ✅ |
+| `index-redundancy-finder` | Redundant (prefix/duplicate/reverse) or unused indexes safe to drop. | ✅ |
+| `db-config-advisor` | Working set vs cache, TOAST share, cache-hit ratios — evidence-based config review. | ✅ |
+| `perf-advisor` | Overall health: collection-scan audit, query timing, PG I/O / locks / config. | ✅ |
+| `data-integrity-check` | Orphaned foreign-key references and mixed-type fields (hard structural integrity). | ✅ |
 
 Common flags: `--container NAME`, `--password PASS`, `--port`, `--pg-port`; env
 vars `DB_USER` / `DB_PASSWORD` / `PORT` / `PG_PORT` are also honored. **No password
@@ -62,12 +63,33 @@ bash scripts/index-redundancy-finder.sh --db ecommerce
 bash knowledge-base/kb-route.sh --db contoso "why are my aggregations slow even though I have indexes"
 ```
 
+The diagnostics also have host-portable Python and PowerShell entry points.
+They require Python 3.10+ and Docker Desktop, but do not require Bash or WSL:
+
+```powershell
+python scripts\document-bloat-advisor.py --db contoso
+.\scripts\index-redundancy-finder.ps1 --db ecommerce --json
+```
+
+The Python launcher executes the same read-only diagnostic logic inside the
+Linux DocumentDB container, so Linux, macOS, and Windows share one behavior
+contract.
+
 Demo datasets are seeders under [`scenarios/`](scenarios/) (they plant the
-problems the tools find). The regression suite in [`testing/`](testing/README.md)
-guards the scripts.
+problems the tools find). The kit is guarded by **two test loops** — deterministic
+script tests in [`testing/`](testing/README.md) and cross-model skill evals in
+[`evals/`](evals/README.md), plus an MSBench benchmark in
+[`benchmarks/`](benchmarks/documentdb-sdk-skills/README.md) — all described in
+[`docs/TESTING.md`](docs/TESTING.md).
+
+> **Benchmark platform support:** Run the SDK benchmark natively on an ARM64
+> or AMD64 host. Running its AMD64 images on an ARM64 host via emulation is
+> **not supported**; use an AMD64 runner to validate the published x86-64
+> MSBench images. See the [ARM64 test report](docs/ARM64-BENCHMARK-REPORT.md).
 
 - **Router:** [`knowledge-base/README.md`](knowledge-base/README.md) · **Demo datasets:** [`scenarios/`](scenarios/)
-- **Regression tests:** [`testing/README.md`](testing/README.md) · **Token study:** [`token-tests/RESULTS.md`](token-tests/RESULTS.md)
+- **Testing:** [`docs/TESTING.md`](docs/TESTING.md) · **Route cost study:** [`benchmarks/documentdb-route-efficiency/`](benchmarks/documentdb-route-efficiency/README.md)
+- **DocumentDB compatibility quick-start:** [`compat/`](compat/QUICKSTART.md) — run a MongoDB-compatible Node.js e-commerce project end-to-end on DocumentDB.
 
 ## Repo Structure
 
@@ -82,9 +104,11 @@ skills/
 scripts/                 # diagnostic toolbox — read-only analyzers + seeders
 knowledge-base/          # NL → script router (kb.json + kb_route.py) + demo
 scenarios/contoso/       # ready-to-run TOAST demo dataset (+ optional scaling-benchmark/)
-testing/                 # fixture-first regression suite for the scripts (pytest)
-token-tests/             # measured token savings of scripts vs text-skill workflows
-docs/                    # SKILLS.md (catalog) + DIAGNOSTICS.md (toolbox guide)
+compat/                  # MongoDB-compatible ecommerce project on DocumentDB
+testing/                 # Diagnostic Regression Suite — deterministic diagnostics (pytest)
+evals/                   # Cross-Model Skill Evaluations — routing, quality, and cost (Vally)
+benchmarks/              # MSBench Skill-Efficacy Benchmark + route-cost study
+docs/                    # Skills, diagnostics, testing, and installation guidance
 ```
 
 ## Installation

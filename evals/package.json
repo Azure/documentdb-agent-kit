@@ -1,0 +1,22 @@
+{
+  "name": "documentdb-agent-kit-evals",
+  "private": true,
+  "description": "Cross-Model Skill Evaluations \u2014 skill-efficacy evals for the DocumentDB agent kit, run with Vally",
+  "scripts": {
+    "lint": "vally lint -e documentdb-skills/eval.yaml",
+    "eval:mock": "vally eval -e documentdb-skills/eval.yaml --executor mock",
+    "eval": "vally eval -e documentdb-skills/eval.yaml",
+    "experiment:plan": "vally experiment run documentdb-skills.experiment.yaml --dry-run",
+    "experiment": "vally experiment run documentdb-skills.experiment.yaml --compare",
+    "tokens": "python3 harness/token_usage.py",
+    "lint:quality": "vally lint -e documentdb-quality/quality-eval.yaml",
+    "eval:quality": "vally eval -e documentdb-quality/quality-eval.yaml",
+    "eval:quality:mock": "vally eval -e documentdb-quality/quality-eval.yaml --executor mock",
+    "experiment:quality:plan": "vally experiment run quality.experiment.yaml --dry-run",
+    "experiment:quality": "vally experiment run quality.experiment.yaml --compare",
+    "lint:all": "npm run lint && npm run lint:quality"
+  },
+  "devDependencies": {
+    "@microsoft/vally-cli": "0.13.0"
+  }
+}

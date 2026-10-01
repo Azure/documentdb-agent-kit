@@ -1,0 +1,2 @@
+{"order_id":"STREAM_BASE_001","customer_id":"CUST_0001","status":"pending","total_amount":25,"version":1,"updated_at":{"$date":"2025-03-31T20:00:00.000Z"}}
+{"order_id":"STREAM_BASE_002","customer_id":"CUST_0002","status":"confirmed","total_amount":40,"version":1,"updated_at":{"$date":"2025-03-31T21:00:00.000Z"}}

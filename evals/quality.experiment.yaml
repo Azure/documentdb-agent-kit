@@ -1,0 +1,60 @@
+# quality.experiment.yaml — is the guidance BETTER with the kit installed?
+#
+# THE QUESTION
+# ------------
+# `documentdb-skills.experiment.yaml` asks whether the right skill fires.
+# This one asks the harder question: **is the resulting advice any good, and is
+# it better than an agent without the kit would have given?**
+#
+# WHY A CONTROL ARM MATTERS EVEN MORE HERE THAN ELSEWHERE
+# -------------------------------------------------------
+# Frontier models already know a lot about MongoDB. A bare agent will produce a
+# perfectly respectable answer to "why is my query slow" — so a treatment-only
+# score of 4.2/5 proves nothing whatsoever. The claim we want to make is
+# comparative ("the kit makes the guidance better"), so the measurement has to
+# be comparative too.
+#
+# It is entirely possible this experiment shows a SMALL delta. That is a real
+# finding and must be reported as one: it would mean the kit's value lies in
+# DocumentDB-specific correctness (which the `documentdb_specificity` gate
+# isolates) rather than in general answer quality.
+#
+# COST
+# ----
+# 2 arms x 4 stimuli x 3 runs = 24 agent runs, each graded by 3 judges = 72
+# judge calls. Start with `--variant` on a single cell before running the lot.
+#
+# Run:
+#   npm run experiment:quality:plan     # free — resolve and print
+#   npm run experiment:quality          # costs AI credits
+
+name: documentdb-guidance-quality-vs-control
+
+evals:
+  - documentdb-quality/quality-eval.yaml
+
+overrides:
+  runs: 3
+  timeout: 5m
+
+execution:
+  workers: 2
+
+matrix:
+  skills:
+    path: /environment/skills
+    values:
+      # CONTROL: a bare agent answering from its own knowledge.
+      - control: []
+      # TREATMENT: the kit installed, discoverable, never mentioned.
+      - kit:
+          - ../skills/query-optimizer
+          - ../skills/query-optimization
+          - ../skills/indexing
+          - ../skills/connection
+          - ../skills/data-modeling
+          - ../skills/vector-search
+
+# The delta is measured against the unskilled agent.
+baseline:
+  skills: control

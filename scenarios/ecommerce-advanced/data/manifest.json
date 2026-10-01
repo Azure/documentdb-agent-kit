@@ -1,0 +1,132 @@
+{
+  "dataset": "ecommerce-advanced",
+  "version": "1.0.0",
+  "generator": "scripts/generate.mjs",
+  "seed": 20260901,
+  "generated_at": "2026-09-01T00:00:00.000Z",
+  "data_epoch": "2025-01-01T00:00:00.000Z",
+  "date_encoding": "Extended JSON {$date: ISO-8601}",
+  "files": [
+    {
+      "path": "cases/aggregations.json",
+      "records": 7,
+      "bytes": 1878,
+      "sha256": "bd809aa4546c0a01c0dfb55c2322fb05f993a03a66390c92e603aef13c7c3e24"
+    },
+    {
+      "path": "cases/change-streams.json",
+      "records": 4,
+      "bytes": 1369,
+      "sha256": "0ff6ba30f62063a73d7e8356a2636c5f34f486eb52300bf8a819be456e017e73"
+    },
+    {
+      "path": "cases/transactions.json",
+      "records": 4,
+      "bytes": 1548,
+      "sha256": "21bb20e9494a7ef7e53f32dc94fe7cd877ff23d8f3cf33efb0aee8ee5a020f9a"
+    },
+    {
+      "path": "collections/customers.jsonl",
+      "records": 200,
+      "bytes": 53746,
+      "sha256": "d0246734a371912cba5659f1fbaa3e3f0710f339366cc321d54390e894f31b03"
+    },
+    {
+      "path": "collections/daily_sales.jsonl",
+      "records": 84,
+      "bytes": 11451,
+      "sha256": "a0182d180a190188377233f9cd72bc08c3b2d47ccef70c44eacf111e0e3d1240"
+    },
+    {
+      "path": "collections/inventory.jsonl",
+      "records": 300,
+      "bytes": 59262,
+      "sha256": "1749d8a85889ba668b3e78c8ae2fd33f5f7dc12c08dc7a98685b5cb95474b8d3"
+    },
+    {
+      "path": "collections/order_items.jsonl",
+      "records": 6000,
+      "bytes": 1011660,
+      "sha256": "6f6ee312a1be47d0c155f62786904a19dc2e9243c27e00da2e6646c036221252"
+    },
+    {
+      "path": "collections/orders.jsonl",
+      "records": 2000,
+      "bytes": 619892,
+      "sha256": "4587c12bade0e0f44ea961017cb2f7595fee1a2d2796bd9447f17c46c69545db"
+    },
+    {
+      "path": "collections/payments.jsonl",
+      "records": 2000,
+      "bytes": 405495,
+      "sha256": "a8b6d8593db4dd58ccd8f892a82593bd43b36b70562f6902846672d32fed193f"
+    },
+    {
+      "path": "collections/products.jsonl",
+      "records": 100,
+      "bytes": 31926,
+      "sha256": "49ac1414a7ec31c71e2dcce2a0be36a6b2e6dc28cf9bc7cabe9a0e3d2cbf45cd"
+    },
+    {
+      "path": "collections/returns.jsonl",
+      "records": 120,
+      "bytes": 25020,
+      "sha256": "6da20ad66678f69926f1949bde34a51fbec5b71e135b2a53a645736ef4bc8173"
+    },
+    {
+      "path": "collections/stream_orders.jsonl",
+      "records": 2,
+      "bytes": 314,
+      "sha256": "209cf10c6156021ecd8ba3415d1f921c42baae6a12a600f749767f87ae33fba4"
+    },
+    {
+      "path": "indexes.json",
+      "records": 1,
+      "bytes": 2105,
+      "sha256": "43097d960dd1e70eac9374f05bd57b14ac089c056b29724bdcf8608004b18c60"
+    }
+  ],
+  "collection_counts": {
+    "customers": 200,
+    "products": 100,
+    "inventory": 300,
+    "orders": 2000,
+    "order_items": 6000,
+    "payments": 2000,
+    "returns": 120,
+    "daily_sales": 84,
+    "stream_orders": 2
+  },
+  "test_case_counts": {
+    "transactions": 4,
+    "change_streams": 4,
+    "aggregations": 7
+  },
+  "empty_output_collections": [
+    "customer_summaries",
+    "stream_events"
+  ],
+  "transaction_fixture_products": {
+    "commit_purchase": "PROD_0001:WH_EAST",
+    "concurrent_last_unit": "PROD_0002:WH_EAST",
+    "insufficient_stock": "PROD_0003:WH_EAST",
+    "forced_rollback": "PROD_0004:WH_EAST"
+  },
+  "daily_sales": {
+    "calendar_days": 90,
+    "stored_days": 84,
+    "missing_day_offsets": [
+      7,
+      19,
+      36,
+      57,
+      78,
+      85
+    ],
+    "null_revenue_day_offsets": [
+      14,
+      43,
+      69
+    ]
+  }
+}

@@ -15,3 +15,6 @@ __pycache__/
 
 # Generated benchmark output (regenerate via scenarios/contoso/scaling-benchmark/)
 scenarios/contoso/scaling-benchmark/results.tsv
+
+# Local token-payload study — not checked in.
+token-tests/

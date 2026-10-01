@@ -1,0 +1,157 @@
+name: Cross-Model Skill Evaluations
+
+# Cross-Model Skill Evaluations measure the text skills against real models:
+# does the kit change what an agent does, and what does it cost?
+#
+# NEVER runs on push or pull_request. Every execution spends AI credits, and the
+# full matrix is 3 models x 2 arms x 5 runs = 30 trials PER STIMULUS. It is
+# manual-dispatch plus a monthly schedule, and the schedule defaults to the
+# cheapest useful configuration.
+#
+# Requires COPILOT_SDK_AUTH_TOKEN. Without it the job stops early with an
+# explanation rather than failing obscurely halfway through the matrix.
+
+on:
+  workflow_dispatch:
+    inputs:
+      variant:
+        description: "Single matrix cell to run (blank = the whole matrix)"
+        required: false
+        type: string
+      runs:
+        description: "Runs per cell (>=3 for a usable spread)"
+        required: false
+        default: "5"
+        type: string
+      dry_run:
+        description: "Resolve and print the plan only — costs nothing"
+        required: false
+        default: false
+        type: boolean
+  schedule:
+    # 05:00 UTC on the 1st. Monthly, not nightly: the signal changes when the
+    # skills or the models change, and neither happens daily.
+    - cron: "0 5 1 * *"
+
+permissions:
+  contents: read
+
+jobs:
+  # -------------------------------------------------------------------------
+  # Free, always runs: catches a broken matrix or a bad skill path before any
+  # credits are spent. `vally --dry-run` does NOT validate skill paths, so the
+  # pytest guard is the part that actually protects the treatment arm.
+  # -------------------------------------------------------------------------
+  validate:
+    name: Validate the experiment (free)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: |
+          pip install -r testing/requirements.txt
+          npm ci --prefix evals
+
+      - name: Static config guards
+        working-directory: testing
+        run: python -m pytest -ra scenarios/evals-config
+
+      - name: Lint the eval spec
+        working-directory: evals
+        run: npm run lint
+
+      - name: Resolve the experiment matrix
+        working-directory: evals
+        run: npm run experiment:plan
+
+  # -------------------------------------------------------------------------
+  # The paid job.
+  # -------------------------------------------------------------------------
+  experiment:
+    name: Cross-model matrix (costs credits)
+    runs-on: ubuntu-latest
+    needs: validate
+    if: ${{ github.event_name == 'schedule' || inputs.dry_run != true }}
+    env:
+      # Vally phones home by default; both opt-outs are set explicitly.
+      VALLY_TELEMETRY_OPTOUT: "1"
+      DO_NOT_TRACK: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check for credentials
+        env:
+          TOKEN: ${{ secrets.COPILOT_SDK_AUTH_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::error::COPILOT_SDK_AUTH_TOKEN is not configured. Cross-Model Skill Evaluations "\
+                 "cannot run real models without it. Add the secret, or use "\
+                 "dry_run to validate the matrix for free."
+            exit 1
+          fi
+
+      - name: Install
+        run: npm ci --prefix evals
+
+      - name: Run the matrix
+        working-directory: evals
+        env:
+          COPILOT_SDK_AUTH_TOKEN: ${{ secrets.COPILOT_SDK_AUTH_TOKEN }}
+        run: |
+          ARGS=()
+          if [ -n "${{ inputs.variant }}" ]; then
+            # Quoted: variant selectors contain commas and '=' (e.g.
+            # 'model=claude-opus-5,skills=kit').
+            ARGS+=(--variant "${{ inputs.variant }}")
+          fi
+          npx vally experiment run documentdb-skills.experiment.yaml \
+            --output-dir vally-experiment-results \
+            --compare "${ARGS[@]}"
+
+      - name: Cost report
+        if: always()
+        # Vally reports its own token usage; this cross-checks it against the
+        # Copilot CLI session store and converts to cost-to-outcome metrics.
+        # Advisory only — a missing session store must not fail the matrix.
+        run: |
+          python3 evals/harness/token_usage.py sessions --limit 20 \
+            || echo "No local session store on this runner (expected in CI)."
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vally-experiment-results
+          path: evals/vally-experiment-results/
+          retention-days: 30
+
+      - name: Summarise
+        if: always()
+        run: |
+          {
+            echo "## Cross-Model Skill Evaluation results"
+            echo
+            echo "Matrix: 3 models x {kit, control}. **Read the deltas, not the"
+            echo "absolute scores** — an absolute pass-rate is uninterpretable"
+            echo "without its control arm."
+            echo
+            REPORT=$(find evals/vally-experiment-results -name '*.md' | head -1)
+            if [ -n "$REPORT" ]; then cat "$REPORT"; else echo "_No report produced._"; fi
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -5,4 +5,5 @@ database: test_ecom_missing_index
 script: perf-advisor.sh
 
 unindexed_collection: events
+escaped_collection: escaped_values
 min_collscan_patterns: 1

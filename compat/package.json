@@ -1,0 +1,16 @@
+{
+  "name": "documentdb-ecommerce-compat",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A MongoDB-compatible e-commerce workload running end-to-end on Azure DocumentDB",
+  "type": "module",
+  "scripts": {
+    "seed": "node scripts/seed.js",
+    "query": "node scripts/run-queries.js",
+    "verify": "node scripts/verify.js",
+    "test": "npm run seed && npm run verify"
+  },
+  "dependencies": {
+    "mongodb": "6.20.0"
+  }
+}

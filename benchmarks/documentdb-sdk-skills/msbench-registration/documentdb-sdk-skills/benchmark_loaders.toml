@@ -1,0 +1,8 @@
+# Place this file at:
+#   <msbench-benchmarks>/benchmarks/skillsbench/documentdb-sdk-skills/benchmark_loaders.toml
+#
+# Tells generate_database.py how to load this benchmark.
+
+[benchmark]
+name = "documentdb-sdk-skills"
+path = "dataset.jsonl"

@@ -1,0 +1,53 @@
+[
+  {
+    "case_id": "commit-purchase",
+    "description": "Insert order, item, and payment; decrement stock atomically.",
+    "product_id": "PROD_0001",
+    "warehouse_id": "WH_EAST",
+    "quantity": 2,
+    "initial_quantity": 10,
+    "expected_quantity": 8,
+    "order_id": "TXN_ORDER_COMMIT",
+    "payment_id": "TXN_PAYMENT_COMMIT",
+    "expected": "commit"
+  },
+  {
+    "case_id": "forced-rollback",
+    "description": "Throw after payment insert; all writes and stock update roll back.",
+    "product_id": "PROD_0004",
+    "warehouse_id": "WH_EAST",
+    "quantity": 3,
+    "initial_quantity": 25,
+    "expected_quantity": 25,
+    "order_id": "TXN_ORDER_ROLLBACK",
+    "payment_id": "TXN_PAYMENT_ROLLBACK",
+    "failure_after": "payment_insert",
+    "expected": "rollback"
+  },
+  {
+    "case_id": "insufficient-stock",
+    "description": "Reject purchase and leave no order/payment when inventory is zero.",
+    "product_id": "PROD_0003",
+    "warehouse_id": "WH_EAST",
+    "quantity": 1,
+    "initial_quantity": 0,
+    "expected_quantity": 0,
+    "order_id": "TXN_ORDER_NO_STOCK",
+    "payment_id": "TXN_PAYMENT_NO_STOCK",
+    "expected": "rollback"
+  },
+  {
+    "case_id": "concurrent-last-unit",
+    "description": "Two concurrent purchases target the last unit; exactly one commits.",
+    "product_id": "PROD_0002",
+    "warehouse_id": "WH_EAST",
+    "quantity": 1,
+    "initial_quantity": 1,
+    "expected_quantity": 0,
+    "competing_order_ids": [
+      "TXN_ORDER_RACE_A",
+      "TXN_ORDER_RACE_B"
+    ],
+    "expected_commits": 1
+  }
+]

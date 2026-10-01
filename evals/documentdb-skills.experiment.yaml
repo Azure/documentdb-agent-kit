@@ -1,0 +1,113 @@
+# documentdb-skills.experiment.yaml — Cross-Model Skill Evaluations cross-model matrix
+#
+# THE QUESTION THIS ANSWERS
+# -------------------------
+# Not "is the kit good?" (unfalsifiable), but:
+#
+#     Does installing the DocumentDB agent kit change what an agent does,
+#     across models, by more than run-to-run noise — and what does it cost?
+#
+# WHAT "TREATMENT" AND "CONTROL" MEAN
+# -----------------------------------
+# The INTERVENTION being measured is: the agent kit's skills are installed and
+# discoverable. That is the only thing that differs between the two arms.
+#
+#   control  -> environment.skills = []          (nothing to discover or read)
+#   kit      -> environment.skills = [...]       (the skills, never mentioned)
+#
+# Model, prompt, stimuli, graders and run count are held identical, so any
+# difference in quality or token cost is attributable to the kit.
+#
+# For TOKENS specifically: the control has no skill files, so its input is just
+# the prompt and its own work. The treatment reads a SKILL.md when it judges one
+# relevant, and those bytes become input tokens. The delta is the price of the
+# kit being available and used.
+#
+# THE CONTROL ARM IS THE WHOLE POINT
+# ----------------------------------
+# An absolute score is uninterpretable. "90% of stimuli passed" means nothing
+# without knowing what a bare agent scores on the same stimuli. Every model is
+# therefore run twice: once with the skills installed, once with none.
+#
+# Any published number MUST be a skills-vs-control delta. A single-arm number is
+# not a result.
+#
+# THE AGENT IS NEVER TOLD TO USE THE SKILLS
+# -----------------------------------------
+# The skills are made discoverable exactly as a user would have them installed,
+# and the prompts contain no hint to use them. This measures the kit's *organic*
+# effect — does an agent that merely HAS the kit apply it? — rather than a
+# hinted best case, which would be a much easier and much less honest question.
+# (Protocol borrowed from the Cosmos MSBench runner; see the plan, §2d.)
+#
+# COST
+# ----
+# Vally reports tokens and nano-AIU per trial. Cross-check with
+# `evals/harness/token_usage.py`, which reads the same run from the Copilot CLI
+# session store, and remember that raw input tokens overstate skill cost by
+# roughly 20x because the payload is cached after first use.
+#
+# RUN
+# ---
+#   npm run experiment:plan     # --dry-run: validates the matrix, costs nothing
+#   npm run experiment          # 3 models x 2 arms x 5 runs = 30 trials PER
+#                               # stimulus. Costs real AI credits.
+#
+#   vally experiment run documentdb-skills.experiment.yaml \
+#     --variant claude-opus-5-skills          # one cell only
+
+name: documentdb-skills-cross-model
+
+evals:
+  - documentdb-skills/eval.yaml
+
+overrides:
+  # N per cell. Agent output is non-deterministic, so a single run is an
+  # anecdote. 5 is the smallest N that gives a usable spread without making the
+  # matrix (3 x 2 x 5 = 30 trials per stimulus) unaffordable.
+  runs: 5
+  timeout: 5m
+
+execution:
+  workers: 3
+
+# ---------------------------------------------------------------------------
+# The matrix. Everything NOT listed in these axes is validated to be identical
+# across variants, so a difference in results cannot come from an accidental
+# config drift between arms.
+# ---------------------------------------------------------------------------
+matrix:
+  model:
+    path: /defaults/model
+    values:
+      - claude-opus-5
+      - gpt-5.6-sol
+      - gemini-3.1-pro-preview
+
+  skills:
+    path: /environment/skills
+    values:
+      # CONTROL: a bare agent. Same prompt, same model, no kit.
+      - control: []
+      # TREATMENT: the kit installed, discoverable, unmentioned.
+      #
+      # Keep this list in sync with `environment.skills` in the eval spec. The
+      # `evals-config` scenario in testing/ asserts every path here exists —
+      # Vally's --dry-run does NOT validate skill paths, so a typo or a skill
+      # that only exists on another branch would silently produce a "control"
+      # run mislabelled as treatment, which is the worst possible failure mode
+      # for an A/B test.
+      - kit:
+          - ../skills/query-optimizer
+          - ../skills/query-optimization
+          - ../skills/indexing
+          - ../skills/connection
+          - ../skills/data-modeling
+          - ../skills/vector-search
+
+# The baseline every delta is measured against. Cross-model rows are reported
+# too, but the meaningful comparison is each model against ITS OWN control —
+# comparing gemini-kit to claude-control would conflate two changes at once.
+baseline:
+  model: claude-opus-5
+  skills: control

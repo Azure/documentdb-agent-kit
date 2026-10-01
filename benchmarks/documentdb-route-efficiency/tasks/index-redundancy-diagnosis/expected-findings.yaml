@@ -1,0 +1,30 @@
+# expected-findings.yaml — the parity oracle.
+#
+# The correct answer is a FACT about the database, not an opinion, so parity is
+# graded structurally. No LLM judge is involved or needed.
+#
+# Both arms must arrive here. A route that is cheaper because it answers WORSE
+# has not saved anything, so cost is only compared among runs that reached
+# parity.
+
+question: >-
+  Which indexes in this database are redundant and safe to drop, and why?
+
+# Exact set. Reported as a set, so ordering does not matter.
+redundant_indexes:
+  - tenant_id_1     # prefix of tenant_id_1_status_1
+  - email_1         # duplicate of email_unique
+
+# Naming any of these is a FALSE POSITIVE and fails parity. Without this, an arm
+# could "win" by listing every index — over-reporting is not correctness.
+must_not_report:
+  - tenant_id_1_status_1
+  - email_unique
+  - customer_id_1
+  - _id_
+
+# The reasoning must identify the mechanism, not merely land on the right names
+# by luck. Each redundant index requires at least one of its keywords.
+reason_keywords:
+  tenant_id_1: [prefix, covered, subset, leading]
+  email_1: [duplicate, identical, same key, unique]

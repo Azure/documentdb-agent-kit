@@ -11,7 +11,17 @@
 // This is a SHAPE fixture: the tests assert JSON validity + structure, never
 // specific finding counts, so the data does not need to be deterministic.
 
-["customers", "orders", "documents"].forEach(function (c) {
+var ADVERSARIAL_COLLECTION =
+    "safe;db.getCollection('diagnostic_sentinel').drop();db.safe";
+
+[
+    "customers",
+    "orders",
+    "documents",
+    "safe",
+    "diagnostic_sentinel",
+    ADVERSARIAL_COLLECTION
+].forEach(function (c) {
     try { db[c].drop(); } catch (e) {}
 });
 
@@ -47,6 +57,9 @@ for (var i = 1; i <= 120; i++) {
     bulk.push({ _id: i, kind: "note", amount: i * 10, blob: txt(6000) });
 }
 db.documents.insertMany(bulk);
+db.safe.insertOne({ _id: 1, marker: "safe" });
+db.diagnostic_sentinel.insertOne({ _id: 1, marker: "must-survive" });
+db.getCollection(ADVERSARIAL_COLLECTION).insertMany(bulk);
 
 print("FIXTURE_READY json-contract");
 db.getCollectionNames().sort().forEach(function (c) {

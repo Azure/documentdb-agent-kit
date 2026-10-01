@@ -24,6 +24,7 @@
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/diagnostic-runtime.sh"
 
 CONTAINER_NAME="${CONTAINER_NAME:-documentdb-local}"
 PORT="${PORT:-10260}"
@@ -79,14 +80,14 @@ done
 # ── Helpers ───────────────────────────────────────────────────────────
 run_mongosh() {
     local target_db="${2:-$DB}"
-    docker exec -u documentdb "$CONTAINER_NAME" mongosh \
+    docdb_exec_as documentdb mongosh \
         "localhost:${PORT}/${target_db}" -u "$USER" -p "$PASSWORD" \
         --authenticationMechanism SCRAM-SHA-256 --tls --tlsAllowInvalidCertificates \
         --quiet --eval "$1" 2>/dev/null
 }
 
 run_psql() {
-    docker exec "$CONTAINER_NAME" psql -h localhost -p "$PG_PORT" -U "$PG_USER" -d "$PG_DB" \
+    docdb_exec_as "" psql -h localhost -p "$PG_PORT" -U "$PG_USER" -d "$PG_DB" \
         -t -A -F $'\t' -c "$1" 2>/dev/null | grep -v "^SET$"
 }
 
@@ -186,11 +187,11 @@ ORDER BY c.collection_name, ci.index_id
 # We'll process in awk and emit JSON findings
 
 # Combined analysis pipeline:
-FINDINGS=$(echo "$MONGO_INDEXES" | awk -v pg_stats="$PG_STATS" -v db="$CURRENT_DB" '
+FINDINGS=$(echo "$MONGO_INDEXES" | PG_STATS="$PG_STATS" awk -v db="$CURRENT_DB" '
 BEGIN {
     FS="\t";
     # Parse PG stats into associative arrays
-    n_pg = split(pg_stats, pg_lines, "\n");
+    n_pg = split(ENVIRON["PG_STATS"], pg_lines, "\n");
     for (i=1; i<=n_pg; i++) {
         line = pg_lines[i];
         if (length(line) == 0) continue;

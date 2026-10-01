@@ -1,0 +1,149 @@
+name: Diagnostic Regression Suite
+
+# The Diagnostic Regression Suite is the deterministic half of the kit's
+# testing. Diagnostic scripts are tools, not agents, so the same database state
+# must return the same answer every time. It is fast, free and runs on every PR.
+#
+# Cross-Model Skill Evaluations are deliberately NOT here — they cost AI
+# credits. See skill-evaluations.yml, which is dispatch/schedule only.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  MONGOSH_VERSION: "2.3.8"
+  MONGOSH_SHA256: "23edb768189663aaa9732a2340a25b5fc05a314940538809a7840be7f2ce221f"
+  DOCUMENTDB_LOCAL_IMAGE: "ghcr.io/microsoft/documentdb/documentdb-local@sha256:0fcf634531c1917ad0855ff9f4354aca0a5c5d8e435f08250568deb37eeb0ad5"
+
+jobs:
+  # -------------------------------------------------------------------------
+  # Everything that needs no database. Runs in ~30s with no Docker at all, so
+  # a broken eval config or a wrong cost metric is caught before the expensive
+  # job even starts.
+  # -------------------------------------------------------------------------
+  static:
+    name: Infrastructure-free contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test deps
+        run: pip install -r testing/requirements.txt
+
+      - name: Token accounting, eval configs, router
+        working-directory: testing
+        # These scenarios override the container fixture with a no-op, so they
+        # run with no Docker, no credentials and no network.
+        run: python -m pytest -ra scenarios/token-accounting scenarios/evals-config scenarios/portable-cli
+
+  windows:
+    name: Windows portable CLI contracts
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test deps
+        run: pip install -r testing/requirements.txt
+
+      - name: Validate Python and PowerShell launchers
+        working-directory: testing
+        run: python -m pytest -ra scenarios/portable-cli
+
+      - name: Execute a PowerShell launcher
+        shell: pwsh
+        run: .\scripts\perf-advisor.ps1 --help
+
+  # -------------------------------------------------------------------------
+  # The full scenario suite against a live container.
+  # -------------------------------------------------------------------------
+  scenarios:
+    name: Diagnostic scenario contracts
+    runs-on: ubuntu-latest
+    needs: static
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Start DocumentDB Local
+        run: |
+          # Throwaway credential for this ephemeral CI container: generated per
+          # run, never hardcoded. Masked so it cannot leak into the log.
+          DOCDB_PASSWORD="Ci$(openssl rand -hex 12)"
+          echo "::add-mask::$DOCDB_PASSWORD"
+          echo "DOCDB_PASSWORD=$DOCDB_PASSWORD" >> "$GITHUB_ENV"
+          docker run -d --name documentdb-local \
+            -p 10260:10260 -p 9712:9712 \
+            -e USERNAME=docdbadmin -e PASSWORD="$DOCDB_PASSWORD" \
+            "$DOCUMENTDB_LOCAL_IMAGE"
+
+      - name: Install mongosh into the container
+        # NOT optional. The documentdb-local image ships psql but NO mongosh
+        # (verified against the pristine image), while every diagnostic script
+        # drives the database with `docker exec <container> mongosh ...`.
+        # Without this step every scenario fails with a confusing "executable
+        # file not found", which looks like a broken test rather than a missing
+        # dependency.
+        run: |
+          MV="${MONGOSH_VERSION}"
+          curl -fsSL "https://downloads.mongodb.com/compass/mongosh-${MV}-linux-x64.tgz" \
+            -o /tmp/mongosh.tgz
+          echo "${MONGOSH_SHA256}  /tmp/mongosh.tgz" | sha256sum -c -
+          tar xzf /tmp/mongosh.tgz -C /tmp
+          docker cp "/tmp/mongosh-${MV}-linux-x64/bin/mongosh" \
+            documentdb-local:/usr/local/bin/mongosh
+          docker cp "/tmp/mongosh-${MV}-linux-x64/bin/mongosh_crypt_v1.so" \
+            documentdb-local:/usr/local/lib/ || true
+          INSTALLED_VERSION="$(docker exec documentdb-local mongosh --version | tr -d '\r')"
+          if [ "$INSTALLED_VERSION" != "$MV" ]; then
+            echo "::error::Expected mongosh $MV, installed $INSTALLED_VERSION"
+            exit 1
+          fi
+          echo "Installed compatible mongosh $INSTALLED_VERSION"
+          rm -rf /tmp/mongosh.tgz "/tmp/mongosh-${MV}-linux-x64"
+
+      - name: Wait for the gateway
+        run: |
+          for i in $(seq 1 90); do
+            if docker exec documentdb-local \
+                 mongosh "localhost:10260/admin" -u docdbadmin -p "$DOCDB_PASSWORD" \
+                 --authenticationMechanism SCRAM-SHA-256 --tls \
+                 --tlsAllowInvalidCertificates --quiet \
+                 --eval "db.runCommand({ping:1}).ok" 2>/dev/null | grep -q 1; then
+              echo "Ready after ${i}s"; exit 0
+            fi
+            sleep 2
+          done
+          echo "Gateway did not become ready in time" >&2
+          docker logs documentdb-local || true
+          exit 1
+
+      - name: Install test deps
+        run: pip install -r testing/requirements.txt
+
+      - name: Run the scenario suite
+        working-directory: testing
+        env:
+          DOCDB_PASSWORD: ${{ env.DOCDB_PASSWORD }}
+        run: python -m pytest -ra
+
+      - name: Container logs on failure
+        if: failure()
+        run: docker logs documentdb-local || true

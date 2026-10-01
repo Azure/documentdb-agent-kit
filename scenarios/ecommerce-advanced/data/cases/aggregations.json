@@ -1,0 +1,95 @@
+[
+  {
+    "case_id": "facet-order-dashboard",
+    "purpose": "$facet with status counts, revenue totals, and top customers.",
+    "collections": [
+      "orders"
+    ],
+    "stages": [
+      "$match",
+      "$facet",
+      "$group",
+      "$sort",
+      "$limit"
+    ]
+  },
+  {
+    "case_id": "pipeline-lookup-order-items",
+    "purpose": "Correlated $lookup using let and $expr.",
+    "collections": [
+      "orders",
+      "order_items"
+    ],
+    "stages": [
+      "$match",
+      "$lookup",
+      "$expr",
+      "$project"
+    ]
+  },
+  {
+    "case_id": "window-customer-running-total",
+    "purpose": "$setWindowFields partitioned by customer and sorted by date.",
+    "collections": [
+      "orders"
+    ],
+    "stages": [
+      "$setWindowFields",
+      "$sum",
+      "$documentNumber"
+    ]
+  },
+  {
+    "case_id": "daily-sales-densify-fill",
+    "purpose": "$densify missing days and $fill intentional null revenue values.",
+    "collections": [
+      "daily_sales"
+    ],
+    "stages": [
+      "$densify",
+      "$fill",
+      "$dateTrunc"
+    ]
+  },
+  {
+    "case_id": "order-return-union",
+    "purpose": "$unionWith orders and returns into one activity stream.",
+    "collections": [
+      "orders",
+      "returns"
+    ],
+    "stages": [
+      "$unionWith",
+      "$project",
+      "$sort",
+      "$limit"
+    ]
+  },
+  {
+    "case_id": "product-price-buckets",
+    "purpose": "$bucket price bands and aggregate product tag arrays.",
+    "collections": [
+      "products"
+    ],
+    "stages": [
+      "$bucket",
+      "$map",
+      "$filter",
+      "$reduce",
+      "$sortArray"
+    ]
+  },
+  {
+    "case_id": "materialize-customer-summary",
+    "purpose": "$merge a repeatable customer summary into a target collection.",
+    "collections": [
+      "orders",
+      "customer_summaries"
+    ],
+    "stages": [
+      "$group",
+      "$set",
+      "$merge"
+    ]
+  }
+]

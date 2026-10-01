@@ -28,17 +28,39 @@ def container_name(request):
     return request.config.getoption("--container") or kit.CONTAINER
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="session")
 def require_container(container_name):
-    """Skip everything if the DocumentDB container isn't running or no password
-    is configured (credentials are never baked in — set DOCDB_PASSWORD or
-    DB_PASSWORD)."""
+    """Validate DocumentDB access for fixtures that explicitly depend on it.
+
+    Container-independent tests must not request this fixture. Credentials are
+    never baked in; set DOCDB_PASSWORD or DB_PASSWORD for live scenarios.
+    """
     if not kit.DB_PASSWORD:
         pytest.skip("No DB password configured — set DOCDB_PASSWORD or DB_PASSWORD "
-                    "(local demo: export DB_PASSWORD=Test1234)")
+                    "(e.g. export DB_PASSWORD='<your-password>')")
     if not kit.container_running(container_name):
         pytest.skip(f"DocumentDB container '{container_name}' is not running "
                     f"(start it, or pass --container / set DOCDB_CONTAINER)")
+
+    ok, detail = kit.can_authenticate(container_name)
+    if not ok:
+        # A bad credential is fatal for the whole session: aborting once with a
+        # clear message beats ~50 identical setup errors.
+        pytest.exit(
+            "Cannot authenticate to the DocumentDB container "
+            f"'{container_name}' as user '{kit.DB_USER}'.\n\n"
+            f"  The server said: {detail}\n\n"
+            "  NOTE: DocumentDB reports a wrong password as "
+            "'MongoServerError: Invalid key' — it is an AUTH failure, not a "
+            "malformed document.\n\n"
+            "  Fix: export the password the container was created with, e.g.\n"
+            "    docker inspect " + container_name +
+            " --format '{{range .Config.Env}}{{println .}}{{end}}' | grep PASSWORD\n"
+            "    export DB_PASSWORD='<that value>'\n"
+            "  Or recreate the container with a password you choose.",
+            returncode=2,
+        )
+    return container_name
 
 
 @pytest.fixture

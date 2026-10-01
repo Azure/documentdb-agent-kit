@@ -24,6 +24,9 @@
 # "SELECT pg_stat_reset()"), run your workload, then re-run this tool.
 set -uo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/diagnostic-runtime.sh"
+
 CONTAINER_NAME="${CONTAINER_NAME:-documentdb-local}"
 PG_PORT="${PG_PORT:-9712}"
 PG_USER="${PG_USER:-documentdb}"
@@ -44,7 +47,7 @@ done
 [[ -z "$DB" ]] && { echo "Error: --db <name> is required" >&2; exit 1; }
 
 run_psql() {
-    docker exec "$CONTAINER_NAME" psql -h localhost -p "$PG_PORT" -U "$PG_USER" -d "$PG_DB" \
+    docdb_exec_as "" psql -h localhost -p "$PG_PORT" -U "$PG_USER" -d "$PG_DB" \
         -t --no-align -F $'\t' -c "$1" 2>/dev/null | grep -vE '^SET$'
 }
 

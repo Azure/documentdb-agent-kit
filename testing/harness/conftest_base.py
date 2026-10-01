@@ -26,7 +26,8 @@ def make_seeded_db_fixture(db_name, scenario_dir, fixture_filename="fixture.js")
     fixture = Path(scenario_dir) / fixture_filename
 
     @pytest.fixture(scope="session")
-    def seeded_db(request, container_name):
+    def seeded_db(request, require_container):
+        container_name = require_container
         if not fixture.exists():
             raise FileNotFoundError(f"fixture not found: {fixture}")
         kit.drop_db(db_name, container=container_name)

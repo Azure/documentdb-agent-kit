@@ -1,0 +1,5 @@
+# Vally run artifacts (trajectories, results, cache) — never committed
+vally-results/
+.vally-cache/
+node_modules/
+results/
