@@ -19,7 +19,7 @@ Ad-hoc startup with unpinned flags scattered across a README:
 
 ```bash
 # Different in every developer's terminal history
-docker run -p 10260:10260 -e USERNAME=u -e PASSWORD=p ghcr.io/microsoft/documentdb/documentdb-local:latest
+docker run -p 10260:10260 -e USERNAME=u -e PASSWORD=p ghcr.io/documentdb/documentdb/documentdb-local:latest
 npm start
 # …where's the password? which image version? how do I stop it?
 ```
@@ -31,7 +31,8 @@ Commit a `docker-compose.yml` to the repo:
 ```yaml
 services:
   documentdb:
-    image: ghcr.io/microsoft/documentdb/documentdb-local:latest
+    image: ghcr.io/documentdb/documentdb/documentdb-local:latest
+    pull_policy: always
     ports:
       - "10260:10260"
     environment:

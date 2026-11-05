@@ -46,9 +46,9 @@ is baked in** — set `DB_PASSWORD` (or pass `--password`).
 
 ```bash
 # 0. start a local DocumentDB container (choose any password; the scripts read it)
-docker run -dt --name documentdb-local -p 10260:10260 \
+docker run --pull always -dt --name documentdb-local -p 10260:10260 \
   -e USERNAME=docdbadmin -e PASSWORD=Test1234 \
-  ghcr.io/microsoft/documentdb/documentdb-local:latest
+  ghcr.io/documentdb/documentdb/documentdb-local:latest
 export DB_PASSWORD=Test1234          # the scripts require this (or --password)
 
 # 1. seed demo data

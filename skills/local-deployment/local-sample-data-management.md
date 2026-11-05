@@ -20,7 +20,8 @@ Shipping images to shared environments without disabling the seed:
 ```yaml
 services:
   documentdb:
-    image: ghcr.io/microsoft/documentdb/documentdb-local:latest
+    image: ghcr.io/documentdb/documentdb/documentdb-local:latest
+    pull_policy: always
     ports: ["10260:10260"]
     environment:
       - USERNAME=docdbuser
@@ -37,7 +38,8 @@ Explicitly opt in to the sample dataset for first-run demos, opt out everywhere 
 ```yaml
 services:
   documentdb:
-    image: ghcr.io/microsoft/documentdb/documentdb-local:latest
+    image: ghcr.io/documentdb/documentdb/documentdb-local:latest
+    pull_policy: always
     ports: ["10260:10260"]
     environment:
       - USERNAME=docdbuser

@@ -1,6 +1,6 @@
 ---
 name: documentdb-local-deployment
-description: Best practices for running Azure DocumentDB locally for development — choosing between the Gateway Docker image and the psql-only image, docker-compose setup, connection config (port 10260, TLS, SCRAM-SHA-256), env-driven configuration, sample-data management (`SKIP_INIT_DATA` / `INIT_DATA_PATH`), port bindings, and dev/prod parity via versioned seed and schema scripts. Use when setting up a new local dev environment, writing sample apps, building integration tests, or diagnosing local connection problems.
+description: Best practices for running Azure DocumentDB locally for development — choosing the Gateway Docker image (MongoDB on 10260, PostgreSQL on 9712), docker-compose setup, connection config (port 10260, TLS, SCRAM-SHA-256), env-driven configuration, sample-data management (`SKIP_INIT_DATA` / `INIT_DATA_PATH`), port bindings, and dev/prod parity via versioned seed and schema scripts. Use when setting up a new local dev environment, writing sample apps, building integration tests, or diagnosing local connection problems.
 license: MIT
 ---
 
@@ -8,12 +8,12 @@ license: MIT
 
 Image choices:
 
-- **Gateway** (`ghcr.io/microsoft/documentdb/documentdb-local:latest`) — MongoDB wire protocol on port **10260**. Use this for app development.
-- **psql-only** (`mcr.microsoft.com/cosmosdb/ubuntu/documentdb-oss:...`) — raw PostgreSQL on port **9712**. Use only for direct SQL inspection.
+- **Gateway** (`ghcr.io/documentdb/documentdb/documentdb-local:latest`) — MongoDB wire protocol on port **10260**. Use this for app development.
+- **PostgreSQL** — the same Gateway image also serves raw PostgreSQL on port **9712**. Use it only for direct SQL inspection. (The MCR psql-only `documentdb-oss` image has no 1.0 build yet.)
 
 ## Rules
 
-- [local-choose-deployment-method](local-choose-deployment-method.md) — Pick the simplest local option (Gateway, Compose, psql-only, or source) that matches the interface your app actually uses.
+- [local-choose-deployment-method](local-choose-deployment-method.md) — Pick the simplest local option (Gateway, Compose, or source) that matches the interface your app actually uses.
 - [local-docker-compose-setup](local-docker-compose-setup.md) — Reproducible local stack via `docker-compose.yml`: pinned images, `host.docker.internal`, `restart: unless-stopped`.
 - [local-connection-config](local-connection-config.md) — Connect on port 10260 with `--tls`, `--tlsAllowInvalidCertificates`, and SCRAM-SHA-256 for the self-signed local cert.
 - [local-env-driven-config](local-env-driven-config.md) — Drive connection URI and TLS relaxation from env vars; never default `tlsAllowInvalidCertificates=true` in code.

@@ -20,10 +20,10 @@
 # harness itself is Microsoft-internal. Package installation below runs inside
 # this Ubuntu image, not on the host (which may be macOS).
 
-# Pinned from ghcr.io/microsoft/documentdb/documentdb-local:latest on
-# 2026-09-22. Update deliberately and rerun the benchmark controls when the
+# Pinned from ghcr.io/documentdb/documentdb/documentdb-local:pg17-1.0.0
+# (DocumentDB 1.0, 2026-10-19). Update deliberately and rerun the benchmark controls when the
 # base changes; a mutable tag would silently change the published environment.
-ARG DOCUMENTDB_BASE_IMAGE=ghcr.io/microsoft/documentdb/documentdb-local@sha256:0fcf634531c1917ad0855ff9f4354aca0a5c5d8e435f08250568deb37eeb0ad5
+ARG DOCUMENTDB_BASE_IMAGE=ghcr.io/documentdb/documentdb/documentdb-local@sha256:4a341daca29b02dabd0d64c357bc9231868b59ef08c8059058b1e5cedbe3899d
 FROM ${DOCUMENTDB_BASE_IMAGE}
 
 USER root

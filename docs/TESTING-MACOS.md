@@ -97,7 +97,7 @@ export DB_PASSWORD="$(openssl rand -hex 24)"
 docker run -d --name documentdb-local \
   -p 10260:10260 -p 9712:9712 \
   -e USERNAME=docdbadmin -e PASSWORD="$DB_PASSWORD" \
-  ghcr.io/microsoft/documentdb/documentdb-local@sha256:0fcf634531c1917ad0855ff9f4354aca0a5c5d8e435f08250568deb37eeb0ad5
+  ghcr.io/documentdb/documentdb/documentdb-local@sha256:4a341daca29b02dabd0d64c357bc9231868b59ef08c8059058b1e5cedbe3899d
 ```
 
 The stock container does not include `mongosh`. Download the **Linux** archive

@@ -25,11 +25,11 @@ password; the scripts read it from `DB_USER` (default `docdbadmin`) and
 `DB_PASSWORD` — **nothing is baked in**:
 
 ```bash
-docker run -dt --name documentdb-local \
+docker run --pull always -dt --name documentdb-local \
   -p 10260:10260 \
   -e USERNAME=docdbadmin \
   -e PASSWORD=[YOUR_PASSWORD] \
-  ghcr.io/microsoft/documentdb/documentdb-local:latest
+  ghcr.io/documentdb/documentdb/documentdb-local:latest
 
 # the scripts require a password — export it once (or pass --password each time)
 export DB_PASSWORD=[YOUR_PASSWORD]

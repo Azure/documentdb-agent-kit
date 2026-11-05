@@ -20,7 +20,7 @@ permissions:
 env:
   MONGOSH_VERSION: "2.3.8"
   MONGOSH_SHA256: "23edb768189663aaa9732a2340a25b5fc05a314940538809a7840be7f2ce221f"
-  DOCUMENTDB_LOCAL_IMAGE: "ghcr.io/microsoft/documentdb/documentdb-local@sha256:0fcf634531c1917ad0855ff9f4354aca0a5c5d8e435f08250568deb37eeb0ad5"
+  DOCUMENTDB_LOCAL_IMAGE: "ghcr.io/documentdb/documentdb/documentdb-local@sha256:4a341daca29b02dabd0d64c357bc9231868b59ef08c8059058b1e5cedbe3899d"
 
 jobs:
   # -------------------------------------------------------------------------

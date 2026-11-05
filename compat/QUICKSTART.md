@@ -47,11 +47,10 @@ configured entirely through `MONGODB_URI`.
 export DOCDB_PASSWORD='<choose-a-password>'
 
 docker rm -f documentdb-compat 2>/dev/null || true
-docker run -d --name documentdb-compat \
+docker run --pull always -d --name documentdb-compat \
   -p 127.0.0.1:10261:10260 \
-  ghcr.io/microsoft/documentdb/documentdb-local:latest \
-  --username docdbadmin \
-  --password "$DOCDB_PASSWORD"
+  -e USERNAME=docdbadmin -e PASSWORD="$DOCDB_PASSWORD" \
+  ghcr.io/documentdb/documentdb/documentdb-local:latest
 ```
 
 Wait for the gateway port:

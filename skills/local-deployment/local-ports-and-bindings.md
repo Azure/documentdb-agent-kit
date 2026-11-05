@@ -21,11 +21,11 @@ Rules:
 Publishing on all interfaces and opening both ports "just in case":
 
 ```bash
-docker run -dt \
+docker run --pull always -dt \
   -p 0.0.0.0:10260:10260 \
   -p 0.0.0.0:9712:9712 \
   -e USERNAME=docdbuser -e PASSWORD='Admin100!' \
-  ghcr.io/microsoft/documentdb/documentdb-local:latest
+  ghcr.io/documentdb/documentdb/documentdb-local:latest
 ```
 
 Now any peer on the local network can attempt SCRAM auth against the local instance.
@@ -36,18 +36,20 @@ Loopback-only, minimal ports:
 
 ```bash
 # App development — Gateway only, loopback only
-docker run -dt \
+docker run --pull always -dt \
   -p 127.0.0.1:10260:10260 \
   -e USERNAME=docdbuser -e PASSWORD='Admin100!' \
-  ghcr.io/microsoft/documentdb/documentdb-local:latest
+  ghcr.io/documentdb/documentdb/documentdb-local:latest
 ```
 
 ```bash
-# SQL inspection session — psql-only image, loopback only
-docker run -p 127.0.0.1:9712:9712 -dt \
-  mcr.microsoft.com/cosmosdb/ubuntu/documentdb-oss:22.04-PG16-AMD64-0.103.0 -e
+# SQL inspection session — same image, PostgreSQL port only, loopback only
+docker run --pull always -dt --name documentdb-sql \
+  -p 127.0.0.1:9712:9712 \
+  -e USERNAME=docdbuser -e PASSWORD='Admin100!' \
+  ghcr.io/documentdb/documentdb/documentdb-local:latest
 
-psql -h localhost --port 9712 -d postgres -U documentdb
+docker exec -it documentdb-sql psql -h localhost -p 9712 -U documentdb -d postgres
 ```
 
 Docker Compose equivalent:
@@ -55,7 +57,8 @@ Docker Compose equivalent:
 ```yaml
 services:
   documentdb:
-    image: ghcr.io/microsoft/documentdb/documentdb-local:latest
+    image: ghcr.io/documentdb/documentdb/documentdb-local:latest
+    pull_policy: always
     ports:
       - "127.0.0.1:10260:10260"
 ```

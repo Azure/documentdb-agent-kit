@@ -43,7 +43,8 @@ Apply to the local container via Compose-mounted `INIT_DATA_PATH`:
 ```yaml
 services:
   documentdb:
-    image: ghcr.io/microsoft/documentdb/documentdb-local:latest
+    image: ghcr.io/documentdb/documentdb/documentdb-local:latest
+    pull_policy: always
     ports: ["127.0.0.1:10260:10260"]
     environment:
       - USERNAME=docdbuser

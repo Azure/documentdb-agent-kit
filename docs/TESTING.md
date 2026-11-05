@@ -34,10 +34,10 @@ all**. Everything else needs a running container.
 
 ```bash
 # 1. Start DocumentDB Local
-docker run -d --name documentdb-local \
+docker run --pull always -d --name documentdb-local \
   -p 10260:10260 -p 9712:9712 \
   -e USERNAME=docdbadmin -e PASSWORD='<choose-a-password>' \
-  ghcr.io/microsoft/documentdb/documentdb-local:latest
+  ghcr.io/documentdb/documentdb/documentdb-local:latest
 
 # 2. Install mongosh INTO the container — the image does not ship it.
 #    Match the container's architecture (not necessarily the host's).

@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-10-19 — Point local setup at DocumentDB 1.0
+
+Every quick start, skill example and CI pin used
+`ghcr.io/microsoft/documentdb/documentdb-local`, a June 2025 build. They now use
+`ghcr.io/documentdb/documentdb/documentdb-local` (1.0), with `--pull always` /
+`pull_policy: always` so a cached old `latest` isn't reused. The CI and
+benchmark pins move to the `pg17-1.0.0` digest. The MCR psql-only image has no
+1.0 build yet, so the local-deployment skill now uses the same image's
+PostgreSQL port (9712) for SQL inspection.
+
 ## 2026-09-15 — Portable diagnostic launchers for Windows
 
 Added native Python entry points and PowerShell wrappers for all six read-only

@@ -142,8 +142,8 @@ def test_ci_and_benchmark_pin_documentdb_image_digest():
         / "Dockerfile"
     ).read_text()
     image = (
-        "ghcr.io/microsoft/documentdb/documentdb-local"
-        "@sha256:0fcf634531c1917ad0855ff9f4354aca0a5c5d8e435f08250568deb37eeb0ad5"
+        "ghcr.io/documentdb/documentdb/documentdb-local"
+        "@sha256:4a341daca29b02dabd0d64c357bc9231868b59ef08c8059058b1e5cedbe3899d"
     )
 
     assert f'DOCUMENTDB_LOCAL_IMAGE: "{image}"' in workflow

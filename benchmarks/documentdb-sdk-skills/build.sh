@@ -43,17 +43,17 @@ fi
 case "$BENCHMARK_PLATFORM" in
     linux/amd64)
         BENCHMARK_ARCH="amd64"
-        BASE_DIGEST="2dd1f8875e59b77a679dac82c1b3e7b2179f920db702515f006a82397d9e3b13"
+        BASE_DIGEST="296aeac28562ab3081cb6854692f2b51acd55b7a4356362dc365d5e86b8b2dff"
         ;;
     linux/arm64)
         BENCHMARK_ARCH="arm64"
-        BASE_DIGEST="325f0149969d583128cc6b773b1d41e191083d8b21bc34d72816b12a4d1c8f61"
+        BASE_DIGEST="a02bdf669f983ffd2ae48e9fa3cf54707e6c6969671067172589dbe1bd7dcf7e"
         ;;
     *) echo "Unsupported BENCHMARK_PLATFORM: $BENCHMARK_PLATFORM" >&2; exit 1 ;;
 esac
 # Both child digests are from the pinned DocumentDB image index. A legacy
 # Docker builder can otherwise reuse a cached arm64 index for an amd64 build.
-BASE_IMAGE="ghcr.io/microsoft/documentdb/documentdb-local@sha256:$BASE_DIGEST"
+BASE_IMAGE="ghcr.io/documentdb/documentdb/documentdb-local@sha256:$BASE_DIGEST"
 
 cd "$HERE"
 
