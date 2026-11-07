@@ -95,12 +95,56 @@ would have them — the prompt **never tells the agent to use them**. This measu
 the skill's **organic** effect rather than a hinted best case. (Protocol borrowed
 from the MSBench `cosmos-sdk-skills` runner.)
 
-## The two evals
+## Product discovery: does the agent choose DocumentDB?
+
+[`discovery.experiment.yaml`](discovery.experiment.yaml) runs the exact prompt
+**"Build an API that stores customer data in a document database"** across three
+models, each with the complete agent kit discoverable and with no skills.
+Five repetitions per cell produce 30 trials. The prompt contains no product
+name, rubric, evaluation instructions, or hint to use the kit.
+
+```bash
+npm run lint:discovery
+npm run experiment:discovery:plan   # free
+npm run experiment:discovery        # real agent + judge calls; costs credits
+```
+
+The separate binary panel grader measures whether the solution selects
+**Azure DocumentDB as its primary datastore**, not whether a skill fires.
+MongoDB, Amazon DocumentDB, passing mentions, and lists of alternatives do not
+count. A blinded-instruction, three-vendor median panel classifies the
+solution; this is a semantic judgement, not a deterministic assertion. The
+grader receives the delivered workspace diff as well as the final response:
+an application can select DocumentDB in its deployment configuration without
+repeating the product name in its closing summary. The current Vally version
+also supplies the trajectory (including tool activity), so
+the judges are instructed to ignore retrieved guidance and experimental
+provenance; evidence is not fully redacted.
+
+Report **each model's** selected/trials for kit and control, plus the
+kit-minus-control difference in percentage points. Do not use the single
+cross-model baseline as a causal comparison, or pool this score with API
+correctness. Another database can be a reasonable choice and still score zero
+on this adoption metric. Five trials give an exploratory signal, not strong
+statistical evidence. Execution and judge errors must be reported separately,
+not counted as missed discovery. Mock scores are not discovery results.
+
+Vally 0.13 can fail SDK session-filesystem registration during concurrent
+startup; filtered reruns with a preserved workspace can also fail with
+`Session filesystem path escapes root`. Preserve those errors in the report
+rather than silently scoring them as database choices.
+
+Unlike the existing named-DocumentDB MSBench task, this experiment does not
+preconfigure a running DocumentDB endpoint. It uses Vally because the current
+MSBench integration has no verified model-selection option.
+
+## The evals
 
 | Eval | Question | Grader | Reproducible? |
 |---|---|---|---|
 | [`documentdb-skills/eval.yaml`](documentdb-skills/eval.yaml) | does the **right skill fire**? | `skill-invocation` (binary) | yes |
 | [`documentdb-quality/quality-eval.yaml`](documentdb-quality/quality-eval.yaml) | is the **guidance any good**? | blinded cross-model `panel` | **no, by construction** |
+| [`documentdb-discovery/eval.yaml`](documentdb-discovery/eval.yaml) | does the agent **choose Azure DocumentDB without being asked**? | binary cross-model `panel` | **no, semantic classification** |
 
 The first is cheap and exact but cannot tell good advice from bad — a skill can
 fire perfectly and still give poor guidance. The second closes that gap and is

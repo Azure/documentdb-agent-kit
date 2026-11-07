@@ -14,7 +14,10 @@
     "eval:quality:mock": "vally eval -e documentdb-quality/quality-eval.yaml --executor mock",
     "experiment:quality:plan": "vally experiment run quality.experiment.yaml --dry-run",
     "experiment:quality": "vally experiment run quality.experiment.yaml --compare",
-    "lint:all": "npm run lint && npm run lint:quality"
+    "lint:discovery": "vally lint -e documentdb-discovery/eval.yaml",
+    "experiment:discovery:plan": "vally experiment run discovery.experiment.yaml --dry-run",
+    "experiment:discovery": "vally experiment run discovery.experiment.yaml --output-dir vally-discovery-results",
+    "lint:all": "npm run lint && npm run lint:quality && npm run lint:discovery"
   },
   "devDependencies": {
     "@microsoft/vally-cli": "0.13.0"

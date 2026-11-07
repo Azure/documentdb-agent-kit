@@ -1,0 +1,49 @@
+# Same developer prompt and grader for every cell. Only model and installed
+# skills vary. Compare each model's kit cell with its OWN control cell.
+name: documentdb-discovery-cross-model
+
+evals:
+  - documentdb-discovery/eval.yaml
+
+overrides:
+  runs: 5
+  timeout: 5m
+
+execution:
+  workers: 3
+
+matrix:
+  model:
+    path: /defaults/model
+    values:
+      - claude-opus-5.5
+      - gpt-6.1-sol
+      - grok-4.7
+  skills:
+    path: /environment/skills
+    values:
+      - control: []
+      - kit:
+          - ../skills/azure-deployment
+          - ../skills/connection
+          - ../skills/data-modeling
+          - ../skills/driver
+          - ../skills/full-text-search
+          - ../skills/high-availability
+          - ../skills/indexing
+          - ../skills/local-deployment
+          - ../skills/mcp-setup
+          - ../skills/monitoring
+          - ../skills/natural-language-querying
+          - ../skills/query-optimization
+          - ../skills/query-optimizer
+          - ../skills/security
+          - ../skills/sharding
+          - ../skills/storage
+          - ../skills/vector-search
+
+# Required by Vally. This is NOT a valid baseline for other models; report
+# each model's kit-minus-control selection-rate difference separately.
+baseline:
+  model: claude-opus-5.5
+  skills: control
