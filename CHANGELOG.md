@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-06 — Add cross-model DocumentDB discovery evaluation
+
+Added a product-neutral customer API prompt evaluated across three models,
+each with the full agent kit discoverable and with no skills. A separate
+binary judge panel classifies the selected database from the delivered
+artifacts and response. Dedicated Vally commands and regression guards keep
+the prompt unhinted and the comparison paired within each model.
+
 ## 2026-10-19 — Point local setup at DocumentDB 1.0
 
 Every quick start, skill example and CI pin used
