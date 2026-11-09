@@ -100,20 +100,41 @@ from the MSBench `cosmos-sdk-skills` runner.)
 [`discovery.experiment.yaml`](discovery.experiment.yaml) runs the exact prompt
 **"Build an API that stores customer data in a document database"** across three
 models, each with the complete agent kit discoverable and with no skills.
-Five repetitions per cell produce 30 trials. The prompt contains no product
-name, rubric, evaluation instructions, or hint to use the kit.
+Five repetitions per cell produce 30 trials. **Both discovery outcomes are
+scored on each generated API**, not separate agent runs. The prompt contains no
+product name, rubric, evaluation instructions, or hint to use the kit.
 
 ```bash
 npm run lint:discovery
+npm run test:discovery              # free native-grader checks; synthetic votes
 npm run experiment:discovery:plan   # free
 npm run experiment:discovery        # real agent + judge calls; costs credits
 ```
 
-The separate binary panel grader measures whether the solution selects
-**Azure DocumentDB as its primary datastore**, not whether a skill fires.
-MongoDB, Amazon DocumentDB, passing mentions, and lists of alternatives do not
-count. A blinded-instruction, three-vendor median panel classifies the
-solution; this is a semantic judgement, not a deterministic assertion. The
+The binary panel criteria report two distinct primary-datastore choices:
+
+| Metric | Counts | Does not count |
+|---|---|---|
+| `selected_oss_documentdb` | Open-source DocumentDB selected for local or self-hosted deployment | A local Gateway used only for development/tests of an Azure-targeted API |
+| `selected_azure_documentdb` | Managed Azure DocumentDB selected as the primary target | Azure offered only as an optional alternative to the chosen OSS deployment |
+
+Both use the same three-vendor median panel. MongoDB, MongoDB Atlas, Amazon
+DocumentDB, Azure Cosmos DB, plain PostgreSQL JSONB, passing mentions, and lists
+of alternatives without a primary choice count as neither. A MongoDB driver or
+URI alone does not establish backend identity; bare "DocumentDB" must be
+disambiguated. A local DocumentDB container establishes OSS identity, not managed
+Azure intent. An Azure-targeted solution may legitimately use that container
+for development, but is counted only in the Azure metric.
+
+Each criterion is binary with a threshold of 1. Neither is required as an AND
+gate: the panel and eval thresholds are 0.5, so selecting **either** primary
+target passes. With equal criterion weights, one selected target produces a
+panel mean of 0.5. **Do not report that mean as a selection rate.**
+The free grading tests exercise OSS-only, Azure-only, neither, judge dissent,
+and judge errors through Vally's actual panel implementation. They do not call
+models or validate the semantic classifier's accuracy.
+
+This is a semantic judgement, not a deterministic assertion. The
 grader receives the delivered workspace diff as well as the final response:
 an application can select DocumentDB in its deployment configuration without
 repeating the product name in its closing summary. The current Vally version
@@ -121,13 +142,23 @@ also supplies the trajectory (including tool activity), so
 the judges are instructed to ignore retrieved guidance and experimental
 provenance; evidence is not fully redacted.
 
-Report **each model's** selected/trials for kit and control, plus the
-kit-minus-control difference in percentage points. Do not use the single
-cross-model baseline as a causal comparison, or pool this score with API
-correctness. Another database can be a reasonable choice and still score zero
-on this adoption metric. Five trials give an exploratory signal, not strong
-statistical evidence. Execution and judge errors must be reported separately,
-not counted as missed discovery. Mock scores are not discovery results.
+Report **each model's OSS and Azure selected/trials separately** for kit and
+control, plus each metric's kit-minus-control difference in percentage points.
+Read the native criterion details named
+`panel/criterion/selected_oss_documentdb` and
+`panel/criterion/selected_azure_documentdb`, not just the overall panel verdict.
+For example, "OSS 1/5; Azure 2/5" describes three distinct primary choices.
+The targets are mutually exclusive: a both-positive classification, missing
+criterion votes, or a judge failure is a grading error to investigate and report,
+not two selections or a missed discovery.
+
+Do not use the single cross-model baseline as a causal comparison, or pool these
+metrics with API correctness. Another database can be a reasonable choice and
+still score zero on both adoption metrics. Five trials give an exploratory
+signal, not strong statistical evidence. Execution and judge errors must be
+reported separately. Mock scores are not discovery results. Earlier Azure-only
+results are historical measurements, not OSS classifications or a run of this
+two-target rubric.
 
 Vally 0.13 can fail SDK session-filesystem registration during concurrent
 startup; filtered reruns with a preserved workspace can also fail with
@@ -144,7 +175,7 @@ MSBench integration has no verified model-selection option.
 |---|---|---|---|
 | [`documentdb-skills/eval.yaml`](documentdb-skills/eval.yaml) | does the **right skill fire**? | `skill-invocation` (binary) | yes |
 | [`documentdb-quality/quality-eval.yaml`](documentdb-quality/quality-eval.yaml) | is the **guidance any good**? | blinded cross-model `panel` | **no, by construction** |
-| [`documentdb-discovery/eval.yaml`](documentdb-discovery/eval.yaml) | does the agent **choose Azure DocumentDB without being asked**? | binary cross-model `panel` | **no, semantic classification** |
+| [`documentdb-discovery/eval.yaml`](documentdb-discovery/eval.yaml) | does the agent **choose OSS or Azure DocumentDB without being asked**, reported separately? | two binary criteria, cross-model `panel` | **no, semantic classification** |
 
 The first is cheap and exact but cannot tell good advice from bad — a skill can
 fire perfectly and still give poor guidance. The second closes that gap and is

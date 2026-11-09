@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-09 — Distinguish OSS and Azure DocumentDB discovery
+
+Score open-source DocumentDB and managed Azure DocumentDB selection separately
+on the same generated customer API. Keep the product-neutral prompt and
+cross-model kit/control matrix unchanged. Distinguish a chosen OSS deployment
+from a local Gateway used only to develop an Azure-targeted application, and
+allow either primary target without requiring both.
+
 ## 2026-11-06 — Add cross-model DocumentDB discovery evaluation
 
 Added a product-neutral customer API prompt evaluated across three models,

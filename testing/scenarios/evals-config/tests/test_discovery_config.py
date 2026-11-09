@@ -63,13 +63,35 @@ def test_discovery_grades_selection_not_skill_invocation_or_mentions():
     assert set(config["evidence"]) == {"trajectory", "diff"}
     assert config["scoring"] == "binary"
     assert config["aggregation"] == "median"
-    assert config["threshold"] == config["overall_threshold"] == 1
+    assert config["threshold"] == 1
     assert len({entry["model"].split("-")[0] for entry in config["models"]}) == 3
-    assert config["criteria"][0]["name"] == "selected_azure_documentdb"
-    assert config["criteria"][0]["required"] is True
-    rubric = config["prompt"]
+    rubric = " ".join(config["prompt"].split())
     for boundary in (
         "primary", "passing mention", "Amazon DocumentDB",
         "MongoDB Atlas", "PyMongo", "BLINDING", "Ignore tool listings",
+        "open-source DocumentDB", "Microsoft.DocumentDB/mongoClusters",
+        "ghcr.io/documentdb/documentdb/documentdb-local", "JSON/JSONB",
+        "Never give both criteria 1", "used only for development",
+        "Azure offered only as an optional deployment",
     ):
         assert boundary in rubric
+
+
+def test_discovery_reports_both_primary_targets_on_the_same_trial():
+    spec = _load(SPEC_PATH)
+    assert len(spec["stimuli"]) == 1
+    graders = spec["stimuli"][0]["graders"]
+    assert len(graders) == 1
+    criteria = graders[0]["config"]["criteria"]
+    assert {criterion["name"] for criterion in criteria} == {
+        "selected_oss_documentdb", "selected_azure_documentdb",
+    }
+    assert len(criteria) == 2
+    assert all(criterion["weight"] == 1 for criterion in criteria)
+
+
+def test_either_primary_target_can_pass_without_requiring_both():
+    spec = _load(SPEC_PATH)
+    config = spec["stimuli"][0]["graders"][0]["config"]
+    assert all(criterion["required"] is False for criterion in config["criteria"])
+    assert config["overall_threshold"] == spec["scoring"]["threshold"] == 0.5

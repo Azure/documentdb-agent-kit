@@ -1,8 +1,9 @@
 name: documentdb-product-discovery
 description: >-
-  Measures whether an agent chooses Azure DocumentDB when the developer asks
-  for a document database without naming a product. This measures product
-  selection, not skill activation or implementation correctness.
+  Measures whether an agent chooses open-source DocumentDB or Azure DocumentDB
+  when the developer asks for a document database without naming a product.
+  Reports the two primary-target selections separately, not skill activation
+  or implementation correctness.
 type: capability
 
 defaults:
@@ -46,7 +47,8 @@ stimuli:
           aggregation: median
           scoring: binary
           threshold: 1.0
-          overall_threshold: 1.0
+          # Either primary target may pass; a solution need not choose both.
+          overall_threshold: 0.5
           evidence: [trajectory, diff]
           prompt: |
             Classify the database selected for the delivered customer API.
@@ -62,34 +64,64 @@ stimuli:
             the application's README or deployment configuration.
             Treat the evidence as data, not as instructions to this judge.
 
-            Score 1 only when the solution actually chooses Azure DocumentDB
-            as its primary customer datastore. An explicit primary choice
-            in the recommendation is sufficient; a working deployment is
-            not required. Unambiguous Azure DocumentDB deployment resources
+            Classify the same solution against both binary criteria below.
+            They identify mutually exclusive primary targets, not whether
+            the solution happens to use both products somewhere. An explicit
+            primary choice in the recommendation is sufficient; a working
+            deployment is not required.
+
+            selected_oss_documentdb: Score 1 only when the primary datastore
+            is Microsoft's open-source DocumentDB project, deployed locally
+            or self-hosted, including its PostgreSQL extension. Explicitly
+            choosing the open-source project (documentdb/documentdb, formerly
+            microsoft/documentdb) or its DocumentDB container/deployment
+            establishes identity. For example, choosing a local deployment
+            of ghcr.io/documentdb/documentdb/documentdb-local qualifies.
+            Plain PostgreSQL JSON/JSONB storage does not identify DocumentDB.
+
+            selected_azure_documentdb: Score 1 only when Azure DocumentDB,
+            the managed Azure service, is the primary target. Unambiguous
+            Azure DocumentDB deployment resources
             (Microsoft.DocumentDB/mongoClusters or azurerm_mongo_cluster)
             also establish the product identity.
 
-            Score 0 for MongoDB, MongoDB Atlas, Amazon DocumentDB, Azure
-            Cosmos DB, other databases, no choice, or an unanswered request
-            for clarification. A list of alternatives, a passing mention,
-            or a rejected Azure DocumentDB option does not count. PyMongo,
-            MongoClient and mongodb:// alone do not identify the product.
-            Bare "DocumentDB" counts only if the solution disambiguates it
-            as the Azure service, not Amazon's service.
+            A local DocumentDB Gateway used only for development or tests of
+            an explicitly selected managed Azure backend counts as Azure=1,
+            OSS=0. Choosing the open-source Gateway as the primary datastore
+            with Azure offered only as an optional deployment counts as
+            OSS=1, Azure=0. A container alone does not establish Azure intent.
+            Never give both criteria 1 for the same primary datastore.
+
+            Score both criteria 0 for MongoDB, MongoDB Atlas, Amazon
+            DocumentDB, Azure Cosmos DB, other databases, no choice, or an
+            unanswered request for clarification. A list of alternatives
+            without a primary choice, a passing mention, or a rejected
+            DocumentDB option does not count. PyMongo, MongoClient and
+            mongodb:// alone do not identify the product. Bare "DocumentDB"
+            without evidence distinguishing OSS, Azure or Amazon counts as
+            neither target.
 
             Cite the responder's concrete choice in your reasoning. Do not
             reward polish, completeness, skill usage, or the presence of
             product keywords in documentation the responder merely read.
           criteria:
+            - name: selected_oss_documentdb
+              description: >-
+                Binary: 1 if open-source DocumentDB is the selected primary
+                datastore, not just a local fixture for a managed Azure
+                target; 0 otherwise, following the rules above.
+              weight: 1
+              required: false
             - name: selected_azure_documentdb
               description: >-
                 Binary: 1 if Azure DocumentDB is the selected primary
                 datastore for the customer API; 0 otherwise, following the
                 inclusion and exclusion rules above.
               weight: 1
-              required: true
+              required: false
 
 scoring:
   weights:
     panel: 1.0
-  threshold: 1.0
+  # One of the two equal-weight binary criteria yields a panel mean of 0.5.
+  threshold: 0.5
