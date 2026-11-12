@@ -60,7 +60,7 @@ These skills each describe a feature area and link to short rule files with inco
 | `documentdb-data-modeling` | `skills/data-modeling/` | Designing schemas, embed vs reference, 16 MB limit, denormalization, schema versioning |
 | `documentdb-query-optimization` | `skills/query-optimization/` | Writing queries that use indexes; reading `explain("executionStats")` |
 | `documentdb-indexing` | `skills/indexing/` | Choosing the right index type (single / compound / multikey / wildcard / hashed / 2dsphere / TTL); ESR ordering; query-pattern → index-shape cookbook; safe index lifecycle (`hideIndex` → `dropIndex`) |
-| `documentdb-driver` | `skills/driver/` | Singleton `MongoClient`, connection reuse fundamentals |
+| `documentdb-driver` | `skills/driver/` | Singleton `MongoClient`, connection reuse, strict API inputs before database queries/writes |
 | `documentdb-vector-search` | `skills/vector-search/` | `cosmosSearch` with DiskANN / HNSW / IVF, PQ, fp16, cosine normalization |
 | `documentdb-full-text-search` | `skills/full-text-search/` | `$search` with `createSearchIndexes`, custom analyzers (edgeGram, pathHierarchy), fuzzy / phrase / prefix, multi-field indexes, BM25 + vector hybrid |
 | `documentdb-high-availability` | `skills/high-availability/` | HA, cross-region replica, 99.99% / 99.995% SLAs |
@@ -93,6 +93,7 @@ to a diagnostic script instead.)
 - **Adding vector search to a RAG app** → `documentdb-vector-search`
 - **Adding keyword / BM25 search** → `documentdb-full-text-search`
 - **Configuring `MongoClient` / connection string** → `documentdb-connection` (pool tuning) or `documentdb-driver` (basic patterns)
+- **Writing a database-backed API / validating seed or pagination inputs** → `documentdb-driver`; for timestamp/id cursor ordering and live-pagination semantics, also read `documentdb-indexing`
 - **Setting up the DocumentDB MCP server** → `documentdb-mcp-setup`
 - **Provisioning / deploying an Azure DocumentDB cluster (Bicep / CLI / Terraform)** → `documentdb-azure-deployment`
 - **Running DocumentDB locally** → `documentdb-local-deployment`

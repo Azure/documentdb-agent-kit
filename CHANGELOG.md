@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — API validation and keyset-pagination guidance
+
+Add focused text-skill rules for rejecting invalid supplied seed/count/date inputs before database I/O, preserving safe JSON-parser 4xx responses, and documenting timestamp/id keyset pagination under backdated inserts. Link them from driver and indexing discovery. Infrastructure-free tests execute the exact marked examples; they do not claim improved agent generation or managed Azure acceptance.
+
 ## 2026-10-19 — Point local setup at DocumentDB 1.0
 
 Every quick start, skill example and CI pin used
