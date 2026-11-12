@@ -545,8 +545,8 @@ def test_azure_login_action_is_pinned_to_an_immutable_commit():
         "azure/login must be pinned to a full 40-character commit SHA, not a "
         "mutable major-version tag"
     )
-    assert match.group(1) == "7184910d9eb2b1c5e48f7073824a90609bb9b6d6"
-    assert match.group(2) == "v2.3.1"
+    assert match.group(1) == "a641126d1b8aa4d1fa005f4f92df94a3a4c4c906"
+    assert match.group(2) == "v3.1.0"
 
 
 def test_build_entrypoint_stages_every_generated_docker_input():
