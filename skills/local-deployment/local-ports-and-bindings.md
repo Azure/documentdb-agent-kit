@@ -61,6 +61,9 @@ services:
     pull_policy: always
     ports:
       - "127.0.0.1:10260:10260"
+    environment:
+      - USERNAME=docdbuser
+      - PASSWORD=${DOCUMENTDB_PASSWORD:?DOCUMENTDB_PASSWORD is required}
 ```
 
 If a teammate legitimately needs to reach your local DB, prefer an SSH tunnel (`ssh -L 10260:localhost:10260 you@host`) over binding to `0.0.0.0`.
