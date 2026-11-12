@@ -191,6 +191,7 @@ db.users.createIndex(
 db.users.find({ username: "ALICE" })
         .collation({ locale: "en", strength: 2 });  // must match index collation
 ```
+Open-source DocumentDB rejects collation with code 115 until it is turned on; see [index-single-field](index-single-field.md) for the settings.
 
 ### 14. Geospatial
 
