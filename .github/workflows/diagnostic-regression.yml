@@ -34,6 +34,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -41,11 +45,10 @@ jobs:
       - name: Install test deps
         run: pip install -r testing/requirements.txt
 
-      - name: Token accounting, eval configs, router
+      - name: Token accounting, eval configs, router, API guidance
         working-directory: testing
-        # These scenarios override the container fixture with a no-op, so they
-        # run with no Docker, no credentials and no network.
-        run: python -m pytest -ra scenarios/token-accounting scenarios/evals-config scenarios/portable-cli
+        # These scenarios do not require a live container or credentials.
+        run: python -m pytest -ra scenarios/token-accounting scenarios/evals-config scenarios/portable-cli scenarios/api-guidance
 
   windows:
     name: Windows portable CLI contracts
