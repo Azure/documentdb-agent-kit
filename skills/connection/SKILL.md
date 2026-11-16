@@ -213,11 +213,10 @@ handling.
 
 ## Retry Logic
 
-Azure DocumentDB supports retryable writes and reads. Enable them:
+Azure DocumentDB supports retryable reads. Enable them:
 
 ```javascript
 const client = new MongoClient(uri, {
-  retryWrites: true,
   retryReads: true,
 });
 ```
