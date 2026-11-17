@@ -60,6 +60,16 @@ Each scenario directory contains:
 | `conftest.py` | Builds the scenario's `seeded_db` fixture (one line) |
 | `tests/test_*.py` | Asserts the kit script's findings match the contract |
 
+## API guidance snippet contracts (no infrastructure)
+
+`scenarios/api-guidance/test-snippets.cjs` extracts and executes the marked JavaScript examples in the driver input-validation and indexing keyset-pagination rules. Run with Node.js 22+:
+
+```bash
+node --test testing/scenarios/api-guidance/test-snippets.cjs
+```
+
+These contracts need no package install, database, network, credentials or model calls. They check validation before a write callback and cursor-filter behavior against in-memory fixtures—not real HTTP parsing, database query plans, or whether a coding agent follows the guidance. They run in the infrastructure-free CI job, separately from the pytest database suite and paid skill-efficacy evaluations.
+
 ## Prerequisites
 
 - A running DocumentDB local container (default name `documentdb-local`,

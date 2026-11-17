@@ -1,6 +1,6 @@
 ---
 name: documentdb-indexing
-description: Index-type selection and shape guidance for Azure DocumentDB — when to use single-field, compound (ESR), multikey, wildcard, hashed, 2dsphere, TTL, and vector indexes; query-pattern → index-shape cookbook; per-collection index budget; DocumentDB-specific preference for `textSearch` over community `$text`. Use when designing or reviewing indexes, choosing an index type for a query pattern, or deciding whether an additional index is worth the write cost.
+description: Index-type selection and shape guidance for Azure DocumentDB — when to use single-field, compound (ESR), multikey, wildcard, hashed, 2dsphere, TTL, and vector indexes; query-pattern → index-shape cookbook; per-collection index budget; DocumentDB-specific preference for `textSearch` over community `$text`. Use when designing or reviewing indexes, implementing stable cursor pagination, choosing an index type for a query pattern, or deciding whether an additional index is worth the write cost.
 license: MIT
 ---
 
@@ -18,6 +18,7 @@ Azure DocumentDB supports the standard MongoDB index types. Only `_id` is create
 
 - [index-single-field](index-single-field.md) — When a single-field index is enough; direction, options (`unique`, `sparse`, `partial`, collation).
 - [index-compound-esr](index-compound-esr.md) — Compound index design via ESR (Equality → Sort → Range); prefer one compound over many singles.
+- [index-keyset-pagination](index-keyset-pagination.md) — Timestamp ties, customer-scoped continuation, live/backdated-insert semantics, and observed sort/index plans. For generated APIs, also read its linked input-validation rule before accepting cursor or seed values.
 - [index-multikey-arrays](index-multikey-arrays.md) — Indexing array fields; the one-array-per-compound (parallel-array) restriction; multikey can't cover queries.
 - [index-text-prefer-textsearch](index-text-prefer-textsearch.md) — On Azure DocumentDB, prefer the `textSearch` index + `$search` over community `$text` indexes.
 - [index-wildcard-dynamic-schemas](index-wildcard-dynamic-schemas.md) — Wildcard indexes for truly dynamic schemas; cost vs benefit; scope the prefix.
