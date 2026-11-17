@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-12 — Keep local examples working on DocumentDB 1.2
+
+The 1.2 `documentdb-local` image refuses to start without a password. The
+Compose example in `local-ports-and-bindings` now passes one, and the compat
+quick start's `docker run` fails up front when `DOCDB_PASSWORD` is unset. The
+collation examples in the indexing skill now say that open-source DocumentDB
+rejects collation (code 115) until it is turned on, and how.
+
 ## 2026-10-19 — Point local setup at DocumentDB 1.0
 
 Every quick start, skill example and CI pin used

@@ -84,6 +84,14 @@ db.users.find({ username: "ALICE" })
         .collation({ locale: "en", strength: 2 });
 ```
 
+On open-source DocumentDB, including the `documentdb-local` image, collation is off by default and both calls fail with code 115 (`CommandNotSupported`). A PostgreSQL superuser can turn it on (in the local image, `psql -h localhost -p 9712 -U documentdb -d postgres`); the second setting is only needed for collated indexes:
+
+```sql
+ALTER SYSTEM SET documentdb_core.enableCollation = on;
+ALTER SYSTEM SET documentdb.enableCollationWithNonUniqueOrderedIndexes = on;
+SELECT pg_reload_conf();
+```
+
 ## References
 
 - [Azure DocumentDB — MQL compatibility](https://learn.microsoft.com/azure/documentdb/compatibility-query-language)
