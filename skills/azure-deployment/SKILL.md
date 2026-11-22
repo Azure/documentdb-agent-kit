@@ -1,6 +1,6 @@
 ---
 name: documentdb-azure-deployment
-description: Deploy an Azure DocumentDB cluster (`Microsoft.DocumentDB/mongoClusters`) end-to-end — Bicep (primary), Azure CLI (`documentdb` extension), or Terraform; the portal is mentioned only as an option for people, never as an agent step. Covers resource-group creation, cluster parameters (tier, storage, server version, sharding, HA), firewall rule configuration, retrieving the connection string, and teardown. Use when the user asks to provision, create, deploy, or spin up an Azure DocumentDB cluster, or wants infrastructure-as-code for one.
+description: Deploy an Azure DocumentDB cluster (`Microsoft.DocumentDB/mongoClusters`) end-to-end — Bicep (primary), Azure CLI (`documentdb` extension), Terraform, or the Azure portal. Every step has a scriptable command, so it works the same for a developer at a terminal, a CI pipeline, or a coding agent. Covers resource-group creation, cluster parameters (tier, storage, server version, sharding, HA), firewall rule configuration, retrieving the connection string, and teardown. Use when the user asks to provision, create, deploy, or spin up an Azure DocumentDB cluster, or wants infrastructure-as-code for one.
 license: MIT
 ---
  
@@ -10,19 +10,19 @@ Interactive skill for provisioning a managed **Azure DocumentDB** cluster (resou
  
 For running DocumentDB locally instead (Docker / Compose), use `documentdb-local-deployment`. For connection-string tuning after the cluster exists, use `documentdb-connection`.
  
-> **Do not confuse with neighbouring tooling.**
-> - CLI: use `az documentdb mongocluster` from the **`documentdb`** extension (`az extension add --name documentdb --upgrade`). Do **not** use `az cosmosdb mongocluster` from the `cosmosdb-preview` extension; it predates the service's current name.
-> - API version: use `2026-06-01` for new templates. Do not copy `2024-07-01` from older samples.
-> - Never complete a step "in the portal" yourself. Every step below has a command; the portal is mentioned only for people who prefer it.
+> **Easy to mix up**
+> - **CLI:** Azure DocumentDB uses `az documentdb mongocluster`, from the `documentdb` extension (`az extension add --name documentdb --upgrade`). The older `az cosmosdb mongocluster` commands in the `cosmosdb-preview` extension date from before the service was renamed; don't use them for new work.
+> - **API version:** use `2026-06-01` for new templates. Many older samples and blog posts use `2024-07-01`.
+> - **Portal and scripts:** the portal is a good way to look around, but every step below also has a command. Use the commands for anything you want to repeat, review, or automate.
  
-## Running without a user (unattended agents)
+## Scripted and unattended runs
  
-Steps 0.5–4 below ask the user to choose. If no user is available to answer (a scheduled job, a CI pipeline, a coding agent working on its own):
+Steps 0.5–4 are written as questions to answer before deploying. When there's no one to answer them, such as a CI job, a scheduled task, or a coding agent working on its own:
  
-1. **Do not deploy.** Generate the infrastructure files (`main.bicep`, `main.parameters.dev.json`, deploy scripts) and stop.
-2. Use the **dev / test** defaults from Step 0.5, not production, so that running the files later by mistake is cheap.
-3. Leave subscription, resource group and region as parameters with no default, so whoever runs the deployment must choose them.
-4. Write down every choice you made, and why, in the README you generate.
+1. Generate the infrastructure files (`main.bicep`, `main.parameters.dev.json`, deploy scripts) and stop there; deploying is a separate, deliberate step.
+2. Use the **dev / test** defaults from Step 0.5, so that running the files by accident is cheap.
+3. Leave subscription, resource group, and region as required parameters with no default.
+4. Record each choice and the reason in the generated README.
 > **No-agent shortcut.** A ready-to-run Bicep + deploy script is checked in at [`examples/azure-deployment/`](../../examples/azure-deployment/) — customers who prefer to run the deploy themselves can clone the repo and just run `./deploy.sh` (no arguments). The script interactively lists subscriptions → resource groups → regions (same flow as this skill). Use it as a reference when generating project files too.
  
 ## Step 0 — preflight checks (run before anything else)
@@ -169,7 +169,7 @@ Now that subscription, RG, and location are fixed, ask for cluster-specific valu
 | High availability | **ZoneRedundantPreferred** (prod default) / `SameZone` / `Disabled` (dev) | Non-Disabled values require M30+ |
 | MongoDB server version | `8.0` | |
 | Public network access | Default `Enabled` with firewall rules | Or disable and attach Private Endpoint (see `documentdb-security`) |
-| Authentication modes | `NativeAuth` + `MicrosoftEntraID` | Enables Microsoft Entra sign-in alongside the admin user. Bicep: `authConfig: { allowedModes: [...] }`; CLI: `--auth-allowed-modes`. See `documentdb-security` for adding Entra users. |
+| Authentication modes | `NativeAuth` + `MicrosoftEntraID` | Turns on Microsoft Entra sign-in alongside the admin user. Bicep: `authConfig: { allowedModes: [...] }`; CLI: `--auth-allowed-modes`. See `documentdb-security` for adding Entra users. |
  
 If the user didn't answer Step 0.5, ask again — without that answer you can't pick the right tier/HA defaults.
  
@@ -180,7 +180,7 @@ If the user didn't answer Step 0.5, ask again — without that answer you can't 
 | **Bicep** (recommended) | Repeatable infra-as-code, PR-reviewed, committed to repo | [Step 6a](#step-6a--deploy-with-bicep) |
 | **Azure CLI one-shot** | Prototype, local dev, quick validation | [Step 6b](#step-6b--deploy-with-azure-cli-one-shot) |
 | **Terraform** | Existing Terraform estate | [Step 6c](#step-6c--deploy-with-terraform) |
-| **Portal** (people only) | A person who wants to see the UI. **Agents: do not choose this path**; give the user the link if they ask. | [Azure portal quickstart](https://learn.microsoft.com/azure/documentdb/quickstart-portal) |
+| **Portal** | First-time users who want to see the options in the UI. Not repeatable or scriptable; for automation, use one of the paths above. | [Azure portal quickstart](https://learn.microsoft.com/azure/documentdb/quickstart-portal) |
  
 For Bicep, load `references/bicep-cluster-template.md` — it contains the canonical parameterized template and an optional private-endpoint variant.
  
@@ -234,7 +234,7 @@ az account set --subscription "<subscription-name-or-id>"
 az extension add --name documentdb --upgrade
 az group create --name rg-docdb-dev --location eastus2
  
-# Read the password from the environment; never type it inline
+# Set DOCDB_ADMIN_PASSWORD first, from Key Vault or your shell's secret store
 az documentdb mongocluster create \
   --resource-group rg-docdb-dev \
   --name docdb-dev-001 \
@@ -258,7 +258,7 @@ az documentdb mongocluster firewall-rule create \
   --end-ip-address 0.0.0.0
 ```
  
-The `documentdb` extension's commands are currently marked preview. Where extensions can't be installed, use the generic Resource Manager commands, which need only the core CLI:
+The `documentdb` extension's commands are currently marked preview. If you can't install CLI extensions, the generic Resource Manager commands do the same with only the core CLI:
  
 ```bash
 az resource create \
@@ -320,7 +320,11 @@ Expect one entry matching your cluster name.
  
 ## Step 8 — retrieve the connection string
  
-Retrieve it with the CLI. Don't build it by hand from the form below; use what the service returns.
+Either way, copy the string the service gives you rather than assembling it by hand.
+ 
+**In the portal:** open the cluster, then **Connection strings**.
+ 
+**From the CLI:**
  
 ```bash
 az documentdb mongocluster list-connection-strings \
@@ -328,7 +332,7 @@ az documentdb mongocluster list-connection-strings \
   --resource-group "<resource-group-name>"
 ```
  
-Without the `documentdb` extension, call the same operation through Resource Manager:
+Without the `documentdb` extension:
  
 ```bash
 az resource invoke-action \
@@ -338,11 +342,9 @@ az resource invoke-action \
   --api-version 2026-06-01
 ```
  
-The caller needs `Microsoft.DocumentDB/mongoClusters/listConnectionStrings/action`, which Contributor includes.
+Both need `Microsoft.DocumentDB/mongoClusters/listConnectionStrings/action`, which the Contributor role includes.
  
-The returned string has a `<password>` placeholder. Substitute it at run time from an environment variable or Key Vault, and never write the completed string to a file.
- 
-(For people: the portal shows the same strings under **cluster → Connection strings**.)
+The string contains a `<password>` placeholder. Fill it in at run time from an environment variable or Key Vault, and don't save the completed string in a file or commit it.
  
 Form of the connection string:
  
@@ -350,7 +352,7 @@ Form of the connection string:
 mongodb+srv://<user>:<password>@<cluster>.global.mongocluster.cosmos.azure.com/?tls=true&authMechanism=SCRAM-SHA-256&retrywrites=false&maxIdleTimeMS=120000
 ```
  
-Keep `retrywrites=false` exactly as the service returns it. <!-- TODO(product): Learn's Python quickstart passes retryWrites=True. Decide which is correct, then state it with the same wording here, in documentdb-connection, and on Learn. --> See `documentdb-connection` for driver-specific tuning.
+Keep `retrywrites=false` as the service returns it. <!-- TODO(product): Learn's Python quickstart passes retryWrites=True. Decide which is correct, then state it with the same wording here, in documentdb-connection, and on Learn. --> See `documentdb-connection` for driver-specific tuning.
  
 ## Step 9 — configure access
  
@@ -366,6 +368,8 @@ Pick one posture and help the user apply it:
     --start-ip-address "$MY_IP" \
     --end-ip-address "$MY_IP"
   ```
+ 
+  In the portal, the cluster's **Networking** page has **+ Add current client IP address**, which does the same.
   The `0.0.0.0`–`0.0.0.0` rule is the documented shortcut for "Allow Azure services and resources within Azure" — use for serverless workloads. Never leave `0.0.0.0–255.255.255.255` in place outside a short connection test.
 - **Private Endpoint** (prod). See `documentdb-security` — public access should be disabled and a Private DNS zone added.
 - **Entra RBAC / CMK / diagnostic settings**. See `documentdb-security` and `documentdb-monitoring`.
