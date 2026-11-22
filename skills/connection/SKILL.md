@@ -60,11 +60,6 @@ connections per replica set member. Formula:
 mongodb+srv://<username>:<password>@<cluster-name>.mongocluster.cosmos.azure.com/?tls=true&authMechanism=SCRAM-SHA-256&retryWrites=true
 ```
 
-Or the non-SRV format:
-```
-mongodb://<username>:<password>@<cluster-name>.mongocluster.cosmos.azure.com:10255/?tls=true&authMechanism=SCRAM-SHA-256&retryWrites=true
-```
-
 ### TLS Is Required
 
 Azure DocumentDB **always requires TLS**. Ensure:
