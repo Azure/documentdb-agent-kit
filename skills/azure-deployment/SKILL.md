@@ -352,7 +352,7 @@ Form of the connection string:
 mongodb+srv://<user>:<password>@<cluster>.global.mongocluster.cosmos.azure.com/?tls=true&authMechanism=SCRAM-SHA-256&retrywrites=false&maxIdleTimeMS=120000
 ```
  
-Keep `retrywrites=false` as the service returns it. <!-- TODO(product): Learn's Python quickstart passes retryWrites=True. Decide which is correct, then state it with the same wording here, in documentdb-connection, and on Learn. --> See `documentdb-connection` for driver-specific tuning.
+See `documentdb-connection` for driver-specific tuning.
  
 ## Step 9 — configure access
  
