@@ -60,6 +60,22 @@ Each scenario directory contains:
 | `conftest.py` | Builds the scenario's `seeded_db` fixture (one line) |
 | `tests/test_*.py` | Asserts the kit script's findings match the contract |
 
+## Infrastructure-free lifecycle examples
+
+[`lifecycle/`](lifecycle/README.md) executes marked JavaScript snippets directly
+from the driver and indexing rules using Node.js built-ins and mocked APIs.
+It checks awaited cleanup, required-index readiness, failure propagation, and
+bounded child-process exit. These are **lifecycle contracts**, not live database
+enforcement tests or measurements of agent efficacy. No Docker, credentials,
+network, npm packages, or Python dependencies are needed:
+
+```bash
+node --test testing/lifecycle/lifecycle.test.mjs
+```
+
+The existing infrastructure-free CI job runs this command with Node.js 24.21.0.
+It is separate from the container-backed pytest scenarios below.
+
 ## Prerequisites
 
 - A running DocumentDB local container (default name `documentdb-local`,

@@ -83,7 +83,10 @@ information, ask targeted questions. Ask **only one question at a time**.
 
 **General best practices:**
 - Create client once only and reuse across application
-- Don't manually close connections unless shutting down
+- For servers and warm serverless invocations, reuse the shared client; close it
+  only during owner-managed shutdown, not after each request. One-off seed/import
+  scripts must await cleanup of their owned connection in `finally` on success
+  and failure — see [driver-connection-lifecycle](../driver/driver-connection-lifecycle.md).
 - Max pool size must exceed expected concurrency
 - Use timeouts to keep only the required connections ready
 - Use default max pool size (100) unless you have specific needs
@@ -170,6 +173,10 @@ app.get('/api/data', async (req, res) => {
 ```
 
 ## Troubleshooting Connection Issues
+
+A connected client does not mean required indexes are ready. Before accepting
+dependent writes or queries, follow
+[index-required-readiness](../indexing/index-required-readiness.md).
 
 ### Pool Exhaustion
 
