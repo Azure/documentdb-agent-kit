@@ -69,7 +69,7 @@ DOCUMENTDB_ALLOW_INVALID_CERTS=true
 For a real Azure DocumentDB cluster, the production `.env` simply:
 
 ```dotenv
-DOCUMENTDB_URI=mongodb+srv://<user>:<pw>@<cluster>.mongocluster.documentdb.azure.com/?tls=true&authMechanism=SCRAM-SHA-256&retrywrites=false
+DOCUMENTDB_URI=mongodb+srv://<user>:<pw>@<cluster>.mongocluster.cosmos.azure.com/?tls=true&authMechanism=SCRAM-SHA-256&retrywrites=false
 # DOCUMENTDB_ALLOW_INVALID_CERTS is unset -> defaults to false, cert validation enforced
 ```
 
