@@ -43,7 +43,10 @@ db.products.createIndex({ inStock: 1 });   // only 2 values; half the collection
 
 ## Correct
 
-Add `unique` / `sparse` / `partial` where they apply:
+Add `unique` / `sparse` / `partial` where they apply. In asynchronous application
+code, a declaration is not a completed build. Gate dependent traffic on
+[required-index readiness](index-required-readiness.md), especially when using
+Mongoose's `unique` schema option.
 
 ```javascript
 // Natural unique key

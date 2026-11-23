@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Add preventive guidance for owned-client cleanup in one-off scripts and
+  required-index readiness before dependent traffic. Offline contracts execute
+  the documented examples to check lifecycle ordering, failure handling, and
+  bounded script exit; they do not prove managed-service enforcement or efficacy.
+
 ## 2026-10-19 — Point local setup at DocumentDB 1.0
 
 Every quick start, skill example and CI pin used

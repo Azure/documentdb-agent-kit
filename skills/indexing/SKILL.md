@@ -1,6 +1,6 @@
 ---
 name: documentdb-indexing
-description: Index-type selection and shape guidance for Azure DocumentDB — when to use single-field, compound (ESR), multikey, wildcard, hashed, 2dsphere, TTL, and vector indexes; query-pattern → index-shape cookbook; per-collection index budget; DocumentDB-specific preference for `textSearch` over community `$text`. Use when designing or reviewing indexes, choosing an index type for a query pattern, or deciding whether an additional index is worth the write cost.
+description: Index-type selection and shape guidance for Azure DocumentDB — when to use single-field, compound (ESR), multikey, wildcard, hashed, 2dsphere, TTL, and vector indexes; required-index readiness before traffic; query-pattern → index-shape cookbook; per-collection index budget; DocumentDB-specific preference for `textSearch` over community `$text`. Use when designing or reviewing indexes, handling Mongoose unique-index initialization, choosing an index type for a query pattern, or deciding whether an additional index is worth the write cost.
 license: MIT
 ---
 
@@ -16,6 +16,7 @@ Azure DocumentDB supports the standard MongoDB index types. Only `_id` is create
 
 ## Rules
 
+- [index-required-readiness](index-required-readiness.md) — Await successful required-index initialization or a completed migration before dependent traffic; fail closed on build errors.
 - [index-single-field](index-single-field.md) — When a single-field index is enough; direction, options (`unique`, `sparse`, `partial`, collation).
 - [index-compound-esr](index-compound-esr.md) — Compound index design via ESR (Equality → Sort → Range); prefer one compound over many singles.
 - [index-multikey-arrays](index-multikey-arrays.md) — Indexing array fields; the one-array-per-compound (parallel-array) restriction; multikey can't cover queries.

@@ -35,6 +35,11 @@ app.get("/users/:id", async (req, res) => {
 
 Serverless (Azure Functions, Lambda): cache the client on the global/module scope so it survives warm invocations; create it lazily on first use.
 
+One-off seed/import scripts have a different lifetime: close their owned client
+in an awaited `finally`, including on failure. See
+[driver-connection-lifecycle](driver-connection-lifecycle.md); do not apply that
+cleanup per request to the shared client above.
+
 ## References
 
 - [MongoDB Node driver — connection management](https://www.mongodb.com/docs/drivers/node/current/fundamentals/connection/)

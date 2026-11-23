@@ -47,6 +47,14 @@ jobs:
         # run with no Docker, no credentials and no network.
         run: python -m pytest -ra scenarios/token-accounting scenarios/evals-config scenarios/portable-cli
 
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24.21.0"
+
+      - name: Documented connection and index lifecycle contracts
+        # Built-ins only: no npm install, database, network, or model calls.
+        run: node --test testing/lifecycle/lifecycle.test.mjs
+
   windows:
     name: Windows portable CLI contracts
     runs-on: windows-latest
