@@ -80,7 +80,7 @@ client = MongoClient(
     serverSelectionTimeoutMS=10000,
     connectTimeoutMS=10000,
     socketTimeoutMS=30000,
-    retryWrites=True,
+    retryWrites=False,
 )
 
 db = client[_require_env("DOCUMENTDB_DATABASE", "ordersdb")]

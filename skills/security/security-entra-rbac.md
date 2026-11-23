@@ -25,7 +25,8 @@ Use a managed identity via Entra + RBAC:
 const client = new MongoClient(uri, {
   authMechanism: "MONGODB-OIDC", // or the current documented mechanism
   // credentialProvider: Azure Managed Identity
-  tls: true
+  tls: true,
+  retryWrites: false
 });
 ```
 

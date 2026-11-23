@@ -47,7 +47,8 @@ const client = new MongoClient(uri, {
   serverSelectionTimeoutMS: 10_000,
   connectTimeoutMS: 10_000,
   socketTimeoutMS: 60_000,
-  maxPoolSize: 10
+  maxPoolSize: 10,
+  retryWrites: false
 });
 
 await client.connect();

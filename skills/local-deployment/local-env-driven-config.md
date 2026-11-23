@@ -51,7 +51,11 @@ def get_client() -> MongoClient:
     allow_invalid_certs = (
         os.getenv("DOCUMENTDB_ALLOW_INVALID_CERTS", "false").lower() == "true"
     )
-    return MongoClient(uri, tlsAllowInvalidCertificates=allow_invalid_certs)
+    return MongoClient(
+        uri,
+        tlsAllowInvalidCertificates=allow_invalid_certs,
+        retryWrites=False,
+    )
 ```
 
 `.env.example` committed to the repo (secrets themselves go in an uncommitted `.env`):
@@ -65,7 +69,7 @@ DOCUMENTDB_ALLOW_INVALID_CERTS=true
 For a real Azure DocumentDB cluster, the production `.env` simply:
 
 ```dotenv
-DOCUMENTDB_URI=mongodb+srv://<user>:<pw>@<cluster>.mongocluster.documentdb.azure.com/?tls=true&authMechanism=SCRAM-SHA-256
+DOCUMENTDB_URI=mongodb+srv://<user>:<pw>@<cluster>.mongocluster.documentdb.azure.com/?tls=true&authMechanism=SCRAM-SHA-256&retrywrites=false
 # DOCUMENTDB_ALLOW_INVALID_CERTS is unset -> defaults to false, cert validation enforced
 ```
 
