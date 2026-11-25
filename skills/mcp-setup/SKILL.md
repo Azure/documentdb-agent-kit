@@ -84,7 +84,7 @@ If either is missing, install them before continuing.
 
 | Option | When to use | Example URI |
 |---|---|---|
-| **A. Azure DocumentDB** | Production / cloud dev | `mongodb+srv://<user>:<pw>@<cluster>.mongocluster.cosmos.azure.com/?tls=true&authMechanism=SCRAM-SHA-256` |
+| **A. Azure DocumentDB** | Production / cloud dev | `mongodb+srv://<user>:<pw>@<cluster>.mongocluster.cosmos.azure.com/?tls=true&authMechanism=SCRAM-SHA-256&retrywrites=false` |
 | **B. Local MongoDB / DocumentDB** | Local dev | `mongodb://localhost:27017` |
 | **C. Custom MongoDB-compatible** | Atlas, self-hosted, third-party | `mongodb://<user>:<pw>@host:port/?tls=true` |
 

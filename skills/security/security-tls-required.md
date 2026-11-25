@@ -23,7 +23,7 @@ const client = new MongoClient(uri, {
 // Rely on the system CA store; ensure your runtime's CAs are up to date.
 const client = new MongoClient(uri, {
   tls: true,
-  retryWrites: true
+  retryWrites: false
 });
 ```
 

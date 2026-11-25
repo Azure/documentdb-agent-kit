@@ -525,7 +525,7 @@ prompt_for_uri() {
   heading "DocumentDB connection string"
   log "Examples:"
   log "  • Local:  mongodb://localhost:27017"
-  log "  • Azure:  mongodb+srv://<user>:<pw>@<cluster>.mongocluster.cosmos.azure.com/?tls=true&authMechanism=SCRAM-SHA-256"
+  log "  • Azure:  mongodb+srv://<user>:<pw>@<cluster>.mongocluster.cosmos.azure.com/?tls=true&authMechanism=SCRAM-SHA-256&retrywrites=false"
   log ""
   printf 'Connection string: '
   IFS= read -r URI || URI=""

@@ -12,7 +12,7 @@ For shared-secret scenarios, create **secondary users** with least-privilege rol
 
 ```javascript
 // Hard-coded admin creds in config
-const uri = `mongodb+srv://admin:SuperSecret123@prod-ddb.mongocluster.documentdb.azure.com/?tls=true`;
+const uri = `mongodb+srv://admin:SuperSecret123@prod-ddb.mongocluster.cosmos.azure.com/?tls=true`;
 ```
 
 ## Correct
@@ -25,7 +25,8 @@ Use a managed identity via Entra + RBAC:
 const client = new MongoClient(uri, {
   authMechanism: "MONGODB-OIDC", // or the current documented mechanism
   // credentialProvider: Azure Managed Identity
-  tls: true
+  tls: true,
+  retryWrites: false
 });
 ```
 

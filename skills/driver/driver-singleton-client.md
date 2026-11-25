@@ -23,7 +23,7 @@ app.get("/users/:id", async (req, res) => {
 
 ```javascript
 // Module-level singleton
-const client = new MongoClient(uri, { maxPoolSize: 50, retryWrites: true });
+const client = new MongoClient(uri, { maxPoolSize: 50, retryWrites: false });
 const clientPromise = client.connect(); // awaited once
 
 app.get("/users/:id", async (req, res) => {

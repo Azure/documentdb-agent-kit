@@ -489,7 +489,7 @@ function Resolve-Uri {
     Write-Heading "DocumentDB connection string"
     Write-Host "Examples:"
     Write-Host "  - Local:  mongodb://localhost:27017"
-    Write-Host "  - Azure:  mongodb+srv://<user>:<pw>@<cluster>.mongocluster.cosmos.azure.com/?tls=true&authMechanism=SCRAM-SHA-256"
+    Write-Host "  - Azure:  mongodb+srv://<user>:<pw>@<cluster>.mongocluster.cosmos.azure.com/?tls=true&authMechanism=SCRAM-SHA-256&retrywrites=false"
     $script:Uri = Read-Host "Connection string"
     if ([string]::IsNullOrWhiteSpace($script:Uri)) {
         Write-Err "connection string is required"; exit 2

@@ -57,7 +57,7 @@ connections per replica set member. Formula:
 ### Connection String Format
 
 ```
-mongodb+srv://<username>:<password>@<cluster-name>.mongocluster.cosmos.azure.com/?tls=true&authMechanism=SCRAM-SHA-256&retryWrites=true
+mongodb+srv://<username>:<password>@<cluster-name>.mongocluster.cosmos.azure.com/?tls=true&authMechanism=SCRAM-SHA-256&retryWrites=false
 ```
 
 ### TLS Is Required
@@ -108,6 +108,7 @@ const client = new MongoClient(process.env.DOCUMENTDB_URI, {
   maxPoolSize: 5,
   minPoolSize: 0,
   maxIdleTimeMS: 30000,
+  retryWrites: false,
 });
 
 module.exports = async function (context, req) {
@@ -208,11 +209,13 @@ handling.
 
 ## Retry Logic
 
-Azure DocumentDB supports retryable reads. Enable them:
+Azure DocumentDB supports retryable reads. Enable them, and set `retryWrites`
+to `false`, as Azure DocumentDB connection strings do:
 
 ```javascript
 const client = new MongoClient(uri, {
   retryReads: true,
+  retryWrites: false,
 });
 ```
 
