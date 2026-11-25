@@ -20,8 +20,8 @@ why it matters → incorrect example → correct example → references.
 | [`data-modeling/`](../skills/data-modeling/) | `model-` | Embed vs reference, 16 MB limit, denormalization, schema versioning |
 | [`sharding/`](../skills/sharding/) | `sharding-` | When to shard vs stay single-shard, shard-key selection (read-heavy vs write-heavy), logical/physical shard mental model, scale-up vs scale-out, hot-partition diagnosis, `sh.shardCollection` / `sh.reshardCollection`, 4 TB logical-shard budget |
 | [`query-optimization/`](../skills/query-optimization/) | `query-` | `explain("executionStats")`, avoiding `COLLSCAN` |
-| [`indexing/`](../skills/indexing/) | `index-` | Index-type selection (single / compound-ESR / multikey / wildcard / hashed / 2dsphere / TTL), query-pattern → index-shape cookbook, index budget, safe `hideIndex` → `dropIndex` lifecycle |
-| [`driver/`](../skills/driver/) | `driver-` | MongoDB driver/SDK usage (singleton client, pooling) |
+| [`indexing/`](../skills/indexing/) | `index-` | Index-type selection (single / compound-ESR / multikey / wildcard / hashed / 2dsphere / TTL), query-pattern → index-shape cookbook, timestamp/id keyset pagination, index budget, safe `hideIndex` → `dropIndex` lifecycle |
+| [`driver/`](../skills/driver/) | `driver-` | MongoDB driver/SDK usage (singleton client, pooling), strict API validation before query/write I/O |
 | [`vector-search/`](../skills/vector-search/) | `vector-` | `cosmosSearch` with DiskANN / HNSW / IVF, PQ, fp16 |
 | [`full-text-search/`](../skills/full-text-search/) | `fts-` | `createSearchIndexes` + `$search` for BM25 keyword / phrase / fuzzy; custom analyzers (keyword + edgeGram) for prefix matching on IDs; `pathHierarchy` for hierarchical identifiers; multi-field search indexes; hybrid (BM25 + vector) with RRF |
 | [`high-availability/`](../skills/high-availability/) | `ha-` | Enabling HA + zone redundancy, cross-region replica, automatic backup retention, documented SLAs |
