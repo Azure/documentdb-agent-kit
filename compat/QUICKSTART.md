@@ -49,7 +49,7 @@ export DOCDB_PASSWORD='<choose-a-password>'
 docker rm -f documentdb-compat 2>/dev/null || true
 docker run --pull always -d --name documentdb-compat \
   -p 127.0.0.1:10261:10260 \
-  -e USERNAME=docdbadmin -e PASSWORD="$DOCDB_PASSWORD" \
+  -e USERNAME=docdbadmin -e PASSWORD="${DOCDB_PASSWORD:?set DOCDB_PASSWORD first}" \
   ghcr.io/documentdb/documentdb/documentdb-local:latest
 ```
 
